@@ -33,10 +33,8 @@ flowchart TD
 
 ---
 
-##################################
+Step-by-Step Roadmap<img width="396" height="42" alt="image" src="https://github.com/user-attachments/assets/7d181fb0-e291-4941-951e-7425abeecefe" />
 
-
-🧩 Kubernetes Core Components
 1. Control Plane (Master Node)
 
 API Server (kube-apiserver) → Cluster entry point, handles requests.
