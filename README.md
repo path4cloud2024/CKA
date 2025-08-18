@@ -17,20 +17,6 @@ This repo contains structured notes, YAML manifests, labs, and cheatsheets to he
 
 ---
 
-## 🚀 Learning Flow
-
-```mermaid
-flowchart TD
-    A[Start] --> B[Kubernetes Basics]
-    B --> C[Pods & Deployments]
-    C --> D[Services & Ingress]
-    D --> E[Storage - PV/PVC/SC]
-    E --> F[Security - RBAC/SA]
-    F --> G[Scheduling & Node Mgmt]
-    G --> H[Troubleshooting]
-    H --> I[Exam Practice & Mock Tests]
-    I --> J[CKA Certification]
-
 ---
 
 Step-by-Step Roadmap<img width="396" height="42" alt="image" src="https://github.com/user-attachments/assets/7d181fb0-e291-4941-951e-7425abeecefe" />
@@ -114,3 +100,19 @@ Services & Networking (~20%)
 Storage (~10%)
 
 Troubleshooting (~30%)
+
+## 🚀 Learning Flow
+
+```mermaid
+flowchart TD
+    A[Start] --> B[Kubernetes Basics]
+    B --> C[Pods & Deployments]
+    C --> D[Services & Ingress]
+    D --> E[Storage - PV/PVC/SC]
+    E --> F[Security - RBAC/SA]
+    F --> G[Scheduling & Node Mgmt]
+    G --> H[Troubleshooting]
+    H --> I[Exam Practice & Mock Tests]
+    I --> J[CKA Certification]
+
+
