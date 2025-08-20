@@ -69,3 +69,9 @@
 
 3) kubectl binary
     https://v1-31.docs.kubernetes.io/docs/tasks/tools/
+
+4) On Cloud
+    We can use the as managed service (PAAS) on public clous.
+    a) AWS, its EKS
+    b) AZURE, AKS
+    c) GCP, its GKE
