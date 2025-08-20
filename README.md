@@ -1,4 +1,3 @@
-🚀 CKA Beginner’s Guide (Step-by-Step Roadmap)
 
 # 🏆 CKA Preparation Guide
 
