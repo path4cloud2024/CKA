@@ -1,0 +1,71 @@
+*********************
+** BEFORE WE BEGIN **
+*********************
+1) A compatible Linux host. The Kubernetes project provides generic instructions for Linux distributions based on Debian and Red Hat, and those distributions without a package manager. We can find the supported kernel version for Unix system:
+    https://www.kernel.org/category/releases.html (for Unix)
+    https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info (for windows)
+
+2) minimum 2 GB or more of RAM per machine (any less will leave little room for your apps).
+3) 2 CPUs or more for control plane machines.
+4) Full network connectivity between all machines in the cluster (public or private network is fine). Or if restrcitions, then below ports must be opened:
+        
+        ************************************CONTROL PLANE********************************************
+        *   Protocol	Direction	Port Range	    Purpose	                Used By                 *
+        *********************************************************************************************
+        *   TCP	        Inbound	    6443	        Kubernetes API server	All                     *
+        *   TCP	        Inbound	    2379-2380	    etcd server client API	kube-apiserver, etcd    *
+        *   TCP	        Inbound	    10250	        Kubelet API	            Self, Control plane     *
+        *   TCP	        Inbound	    10259	        kube-scheduler	        Self                    *
+        *   TCP	        Inbound	    10257	        kube-controller-manager	Self                    *
+        *********************************************************************************************
+
+        ** Although etcd ports are included in control plane section, you can also host your own etcd cluster externally or on custom ports.
+
+        *************************************WORKER NODES(s)*****************************************************
+        *    Protocol	    Direction	    Port Range	        Purpose	                Used By                 *
+        *********************************************************************************************************
+        *    TCP	        Inbound	        10250	            Kubelet API	            Self, Control plane     *
+        *    TCP	        Inbound	        10256	            kube-proxy	            Self, Load balancers    *
+        *    TCP	        Inbound	        30000-32767	        NodePort Services†	    All                     *
+        *    UDP	        Inbound	        30000-32767	        NodePort Services†	    All                     *
+        *********************************************************************************************************
+
+5) Unique hostname, MAC address, and product_uuid for every node. Below are more details:
+    It is very likely that hardware devices will have unique addresses, although some virtual machines may have identical values. Kubernetes uses these values to uniquely identify the nodes in the cluster. If these values are not unique to each node, the installation process may fail. (https://github.com/kubernetes/kubeadm/issues/31)
+
+6) Swap Configuration
+    The default behavior of a kubelet is to fail to start if swap memory is detected on a node. This means that swap should either be disabled or tolerated by kubelet.
+    To tolerate swap, add failSwapOn: false to kubelet configuration or as a command line argument.
+
+****************************************
+** Installation methods of Kubernetes **
+****************************************
+
+1) Play with K8s playground:
+     Ready made environment for Kubernetes cluster available online.
+     https://labs.play-with-k8s.com/
+
+2) Set up Kubernetes tools on your computer.
+     https://kubernetes.io/docs/tasks/tools/
+     The Kubernetes command-line tool, kubectl, allows you to run commands against Kubernetes clusters. You can use kubectl to deploy applications, inspect and manage cluster resources, and view logs.
+    kubectl is installable on a variety of Linux platforms, macOS and Windows. Find your preferred operating system below.
+
+    Install kubectl on Linux (https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
+    Install kubectl on macOS (https://kubernetes.io/docs/tasks/tools/install-kubectl-macos/)
+    Install kubectl on Windows (https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/)
+
+    We can setup the environment in 3 ways:
+    a) Kind:
+        lets you run Kubernetes on your local computer. This tool requires that you have either Docker or Podman installed.
+        https://kind.sigs.k8s.io/docs/user/quick-start/
+
+    b) minikube
+        Like kind, minikube is a tool that lets you run Kubernetes locally. minikube runs an all-in-one or a multi-node local Kubernetes cluster on your personal computer (including Windows, macOS and Linux PCs) so that you can try out Kubernetes, or for daily development work.
+        https://minikube.sigs.k8s.io/docs/start/
+
+    c) kubeadm
+        You can use the kubeadm tool to create and manage Kubernetes clusters. It performs the actions necessary to get a minimum viable, secure cluster up and running in a user friendly way.
+        https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+
+3) kubectl binary
+    https://v1-31.docs.kubernetes.io/docs/tasks/tools/
