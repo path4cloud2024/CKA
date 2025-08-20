@@ -1,0 +1,150 @@
+
+#########################
+## MASTER NODE COMMAND ##
+#########################
+
+1) swapoff -a
+To make it permanant: # sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+2) create this file and make a below entry: /etc/modules-load.d/cka.conf
+overlay
+br_netfilter
+
+3) Load the modules to kernel
+modprobe overlay
+modprobe br_netfilter
+
+4) create this file and make a below entry: /etc/sysctl.d/cka.conf
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+
+5) Load the kernel parameters
+sysctl --system
+
+6) Verify the modules (optional)
+lsmod | grep br_netfilter
+lsmod | grep overlay
+
+7) Refresh the index repo and install below keys and packages
+# apt-get update
+# apt-get install ca-certificates curl
+# install -m 0755 -d /etc/apt/keyrings
+# curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+# chmod a+r /etc/apt/keyrings/docker.asc
+
+# echo \
+"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+$(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+# tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# apt-get update
+# apt-get install containerd.io
+# systemctl restart containerd
+
+8) To set teh containerd as default container runtime
+# containerd config default > config.toml
+# sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' config.toml
+# cp config.toml /etc/containerd/
+# systemctl restart containerd
+
+9) To install kubeadm, kubelet, and kubectl
+# apt-get update
+# apt-get install -y apt-transport-https ca-certificates curl gpg
+# curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+# echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+# apt-get update
+# apt-get install -y kubelet kubeadm kubectl
+# apt-mark hold kubelet kubeadm kubectl
+# systemctl enable --now kubelet
+
+10) To intialize kubernetes on master node
+# kubeadm init
+# ctr -n k8s.io images ls
+# mkdir -p $HOME/.kube
+# cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+# chown $(id -u):$(id -g) $HOME/.kube/config
+
+11) TO initialize the pod network:
+# kubeadm init --pod-network-cidr=10.244.0.0/16
+
+12) TO setup the SDN/CNI network for kubernetes cluster
+# kubectl apply -f https://reweave.azurewebsites.net/k8s/v1.29/net.yaml
+OR
+# kubectl apply -f https://github.com/coreos/flannel/releases/download/v0.20.2/kube-flannel.yml
+
+13) To verify the pods in Kube-System Namespace
+kubectl get pods -n kube-system
+
+14) To join the worker node (make sure, you installed the required package on worker node)
+kubeadm token create --print-join-command
+(and run the providing token on the worker nodes)
+
+15) To deploy a sample application
+# kubectl create deployment sample-app --image=kicbase/echo-server:1.0
+# kubectl expose deployment sample-app --type=NodePort --port=8080
+
+OR
+# kubectl create deploy nginx --image nginx
+# kubectl get all
+# kubectl expose deploy nginx --port 80 --type NodePort
+# kubectl get svc
+
+#########################
+## WORKER NODE COMMAND ##
+#########################
+
+1) swapoff -a
+To make it permanant: # sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+2) create this file and make a below entry: /etc/modules-load.d/cka.conf
+overlay
+br_netfilter
+
+3) Load the modules to kernel
+modprobe overlay
+modprobe br_netfilter
+
+4) create this file and make a below entry: /etc/sysctl.d/cka.conf
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+
+5) Load the kernel parameters
+sysctl --system
+
+6) Verify the modules (optional)
+lsmod | grep br_netfilter
+lsmod | grep overlay
+
+7) Refresh the index repo and install below keys and packages
+# apt-get update
+# apt-get install ca-certificates curl
+# install -m 0755 -d /etc/apt/keyrings
+# curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+# chmod a+r /etc/apt/keyrings/docker.asc
+
+# echo \
+"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+$(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+# tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# apt-get update
+# apt-get install containerd.io
+# systemctl restart containerd
+
+8) To set teh containerd as default container runtime
+# containerd config default > config.toml
+# sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' config.toml
+# cp config.toml /etc/containerd/
+# systemctl restart containerd
+
+9) To install kubeadm, kubelet, and kubectl
+# apt-get update
+# apt-get install -y apt-transport-https ca-certificates curl gpg
+# curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+# echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+# apt-get update
+# apt-get install -y kubelet kubeadm kubectl
+# apt-mark hold kubelet kubeadm kubectl
+# systemctl enable --now kubelet
