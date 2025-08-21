@@ -36,13 +36,13 @@ lsmod | grep overlay
 # echo \
 "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
 $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-# tee /etc/apt/sources.list.d/docker.list > /dev/null
+tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 # apt-get update
 # apt-get install containerd.io
 # systemctl restart containerd
 
-8) To set teh containerd as default container runtime
+8) To set the containerd as default container runtime
 # containerd config default > config.toml
 # sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' config.toml
 # cp config.toml /etc/containerd/
