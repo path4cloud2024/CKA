@@ -1,25 +1,4 @@
 
-## 📌 Understand the components:
-- **Control Plane:** API Server, etcd, Controller Manager, Scheduler.
-- **Worker Node:** kubelet, kube-proxy, container runtime.
-- **Pod → Deployment → Service → Ingress.**
-
-👉 Visualize: Control Plane = brain 🧠, Worker Nodes = muscles 💪.
-
-```
-                   +---------------------+
-                   |   Control Plane     |
-                   | (Master Components) |
-                   +---------------------+
-                      |   |   |   |
-          -----------------------------------------
-          |                 |                  |
-   +--------------+   +--------------+   +--------------+
-   |   Worker     |   |   Worker     |   |   Worker     |
-   |   Node 1     |   |   Node 2     |   |   Node N     |
-   +--------------+   +--------------+   +--------------+
-```
-
 # ⚙️ Kubernetes Cluster Architecture
 
 ## 🌐 Mechanism of the Kubernetes Cluster
@@ -35,6 +14,14 @@ At its core, it uses **metadata** (like pod names, labels, and selectors) to ide
 This mechanism ensures **self-healing, scaling, and automated management** of workloads.
 
 ---
+
+## 📌 Understand the components:
+- **Control Plane:** API Server, etcd, Controller Manager, Scheduler.
+- **Worker Node:** kubelet, kube-proxy, container runtime.
+- **Pod → Deployment → Service → Ingress.**
+
+👉 Visualize: Control Plane = brain 🧠, Worker Nodes = muscles 💪.
+
 
 ## 🏗️ Kubernetes Architecture Diagram
 
