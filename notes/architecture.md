@@ -43,21 +43,21 @@ This mechanism ensures **self-healing, scaling, and automated management** of wo
 
 ## 🧩 Main Components of the Control Plane (Manager Node)
 
-### 1. **Kube Proxy**
-- Runs on each worker node.  
-- Responsible for **networking inside the cluster**.  
-- Ensures that **pods can communicate** across nodes.  
-- Handles request forwarding to the correct pod using **Services (ClusterIP, NodePort, LoadBalancer)**.
-
----
-
-### 2. **Kube API Server**
+### 1. **Kube API Server**
 - The **front door** of the Kubernetes cluster.  
 - All external and internal requests go through the API Server.  
 - It validates and processes API requests (like creating a pod or scaling deployments).  
-- Acts as the communication hub between all Kubernetes components.  
+- Acts as the communication hub between all Kubernetes components. 
 
 👉 Without the API server, no communication between users and cluster is possible.
+
+---
+
+### 2. **ETCD**
+- A **distributed key-value database** of the Kubernetes cluster.  
+- Stores everything: Cluster State, Configs, Secrets, Pod Definitions.
+- Example: if you create a Pod, its definition is saved in etcd.
+- Think of it as the filing cabinet for the company.
 
 ---
 
@@ -84,6 +84,12 @@ Key components include:
 - **Kubelet** → Communicates with API server, ensures containers are running as expected.  
 - **Container Runtime (containerd, CRI-O, Docker)** → Launches containers.  
 - **Pods** → The smallest deployable unit in Kubernetes (running one or more containers).  
+
+### **Kube Proxy**
+- Runs on each worker node.  
+- Responsible for **networking inside the cluster**.  
+- Ensures that **pods can communicate** across nodes.  
+- Handles request forwarding to the correct pod using **Services (ClusterIP, NodePort, LoadBalancer)**.
 
 ---
 
