@@ -1,0 +1,12 @@
+####
+
+Create a container with kubectl command and expose it as service.
+
+# kubectl run web1 --image=amitaryan0010/path4cloud-web --port=80
+# kubectl get pods -w
+# kubectl expose pod web1 --type=NodePort --port=8080 --target-port=80
+# kubectl get svc web
+
+and then try to access it from browser:
+
+worker_node_ip:<assigned node port>
