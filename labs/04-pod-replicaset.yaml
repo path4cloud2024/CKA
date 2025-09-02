@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: web2-rs
+  labels:
+    app: nginx-web2
+spec:
+  replicas: 3 # Number of replicas (pods)
+  selector:
+    matchLabels:
+      app: nginx-web2
+  template:
+    metadata:
+      labels:
+        app: nginx-web2
+    spec:
+      containers:
+      - name: web2
+        image: amitaryan0010/path4cloud-web:latest # Replace with your image
+        ports:
+        - containerPort: 80 # Container's internal port
+
+### Expose it (optional)
+
+### kubectl expose rs web2-rs --type=NodePort --port=8080 --target-port=80
