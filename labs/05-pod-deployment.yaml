@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web3-rs
+  labels:
+    app: nginx-web3
+spec:
+  replicas: 3 # Number of replicas (pods)
+  selector:
+    matchLabels:
+      app: nginx-web3
+  template:
+    metadata:
+      labels:
+        app: nginx-web3
+    spec:
+      containers:
+      - name: web3
+        image: amitaryan0010/path4cloud-web:latest # Replace with your image
+        ports:
+        - containerPort: 80 # Container's internal port
+
+### Expose it (optional)
+
+### kubectl expose rs web2-rs --type=NodePort --port=8080 --target-port=80
