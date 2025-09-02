@@ -7,6 +7,7 @@ spec:
     app: nginx-web
   ports:
   - protocol: TCP
-    port: 8080 # Service (external) port
-    targetPort: 80 # Container's internal port
+    port: 8080 # Service (external) port (it is a mandatory option)
+    targetPort: 80 # Container's internal port (If you don't provide this then it is assumed as the same port as PORT, since this is optional)
+    # nodePort: 31080 (optional, if you don't provide then it is assigned from range 30000-32767
   type: NodePort
