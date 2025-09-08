@@ -1,5 +1,53 @@
+ETCD is a distributed key-value store.
+example:
+
+key         value
+-------------------
+Name        Sam
+Age         34
+Gender      Male
+Location    India
+
+######
+here, we can see it stores the value in key-value format, we can call the key to get its value.
+We can't have duplicates key in this.
+##################################
+
+Install standalon ETCD
+
+Binary: curl -L https://github.com/etcd-io/etcd/releases/download/v3.6.4/etcd-v3.6.4-linux-amd64.tar.gz
+
+(https://github.com/etcd-io/etcd/releases)
+
+Extract: tar etcd-v3.6.4-linux-amd64.tar.gz
+
+Run ETCD: ./etcd (it will start the etcd service on localport 2379)
+
+We can attach the client to store the data.
+
+DEMO:
+    run ./etcd in one terminal
+    run ./etcdctl --endpoints=localhost:2379 put course CKA
+    run ./etcdctl --endpoints=localhost:2379 get course
+#####################
+
+INSTALLATION OF ETCD; we have 2 methods:
+1) From scratch (use binary, download, Extract it and use it)
+2) use with Kubeadm in cluster
+
+********************
+ETCD stroes data in specific structure, root directory is called registry under this different resoruce are stored, like pods, replicaset, deployments and many more.
+
+We can explore more about it with below command in kubeadm cluster:
+     
 kubectl exec -n kube-system etcd-k8master -- /bin/sh -c 'ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \
 --cacert=/etc/kubernetes/pki/etcd/ca.crt \
 --cert=/etc/kubernetes/pki/etcd/server.crt \
 --key=/etc/kubernetes/pki/etcd/server.key \
 get / --prefix --keys-only'
+
+
+
+####################################
+
+In HA environment, we can have multiple master nodes and so mulitple etcd service, to keep it consistent and in sync we need to put all the details in etcd service regarding all master nodes.

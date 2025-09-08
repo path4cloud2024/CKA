@@ -1,0 +1,23 @@
+*** Some Important Command to understand
+    # kubectl run nginx --image=nginx (to run a sample nginx pod)
+    # kubectl get pods (to list the current pods in current or default namespace)
+    # kubectl describe pod <pod_name> ( to check the more details on pod)
+    # kubectl get pods -o wide (to check more detials about pods)
+    # kubectl delete pod <pod_name> (to delete the pod)
+    # kubectl run <pod_name> --image=<image_name> -dry-run=client -o yaml (to create yaml file for a pod)
+    # kubectl create -f <file_name>.yaml (to create a pod or any other resoruce using yaml file)
+    # kubectl edit <resource_name> (to edit the current configuration of resource)
+    # kubectl explain <any_object> (to see the more details or help about that object)
+        (# kubectl explain replicaset)
+
+    # kubectl get all (to check the all resources at once)
+
+###
+Replica Set
+    Scaling the replicaset:
+        1) update the yaml file with new numbers of replicas required and replace it with:
+            # kubectl replace -f <replica-file>.yaml
+        2) we can directly scale the replica from command line but that will not udpate the replica-file.yaml:
+            # kubectl scale --replicas=<new_number> -f <replica-file>.yaml
+            OR 
+            # kubectl scale --replica=<new_number> replicaset <name_of_replicaset>

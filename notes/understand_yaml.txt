@@ -1,0 +1,56 @@
+In K8s, all resrouces are recommended to manage using yaml files so that we can keep a track conrol of files.
+In yaml File, we have 4 main sections, lets under those:
+
+apiVersion:
+kind:
+metadata:
+
+spec:
+
+#####
+apiVersion: is refre to the resouces or class where that particular resource is supported.
+
+kind: type of resource which we are creating.
+
+metadata: name of that resouces or any other additional labels are attached to that resouce.
+
+spec: is most Important part of any yaml file which defines what exactly this files creates inside that resouce.
+
+
+##########
+
+
+Except pod, we do have another sections under spec. let say if we need to create a replicaset then, we need to define the template for pod definition, replicas for how many instances we need to run and selector to keep a track on pods by replicaset using labaels.
+
+EXAMPLE FILE:
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-replicaset
+spec:
+  replicas: 3                                               # ----> Desired number of pod replicas
+  selector:
+    matchLabels:
+      app: nginx-app                                        # -----> Label selector to identify pods managed by this ReplicaSet
+  template:                                                 # -----> Pod template for creating new pods
+    metadata:
+      labels:
+        app: nginx-app                                      # ----> this is the lable which replicaset keeps a track of.
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:latest                                 # -----> Docker image for the container
+        ports:
+        - containerPort: 80                                 # -----> Port exposed by the container
+
+NOTE ---> Replicaset can manage the all pods which has label as app: nginx-app whether or not these pods are created before the replicaset created.
+
+    ** Scaling the replicaset:
+        1) update the yaml file with new numbers of replicas required and replace it with:
+            # kubectl replace -f <replica-file>.yaml
+        2) we can directly scale the replica from command line but that will not udpate the replica-file.yaml:
+            # kubectl scale --replicas=<new_number> -f <replica-file>.yaml
+            OR 
+            # kubectl scale --replica=<new_number> replicaset <name_of_replicaset>
+

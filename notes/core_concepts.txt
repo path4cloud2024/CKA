@@ -1,0 +1,133 @@
+############
+
+kubernetes Core Concepts:
+
+1) ETCD - Key-value distributed data store (check explore_etcd file for more information)
+
+2) Kube-api server: First entry to the cluster using kubectl command, kubectl command authenicate first against ETCD DB and repsone back to the admin.
+    - To view kube-api server in kubeadm setup, it deploys the api-server as a pod in kube-system namespace and default file under /etc/kubernetes/manifests/kube-apiserver.yaml
+    -If deploy as a dedicated service, then we can explore more options under /etc/systemd/system/kube-apiserver.service
+
+3) Scheduler: continuously monitor the API server and get the information if any new resouces needs to be created then if find out the right node for that resource and pass the information to API servers, then API server update that information to ETCD DB and pass the information to kubelet service to that particular node.
+    - To view kube Scheduler in kubeadm setup, it deploys the Scheduler as a pod in kube-system namespace and default file under /etc/kubernetes/manifests/kube-scheduler.yaml
+    -If deploy as a dedicated service, then we can explore more options under /etc/systemd/system/kube-scheduler.service
+
+4) Controller Manager: continuously monitor the entire cluster and make sure to keep the cluster into desired state while functioning.
+    - Node Controller: assures all nodes are up and running with healthy state. Using API-Server, keep the track of nodes in every 5 seconds and if its not responding then afte 40 seconds, it marked as unreachable then finally 5 mintues window started to keep waiting for a node to respond back and if not then afte 5 mintues, pods running on that nodes will be evicted.
+    - Replica Controller: monitor the status of replicas sets and keep the same number of pods running which is desired. It maintains the load balanace and scale of pods. New name of this is Replica Set and in modern K8s, it is name as Replica Set.
+    - Deployment Controller:
+    - Namespcae Controller:
+    - Enpoint Controller:
+    - Job Controller:
+    - Service Account Controller:
+    and many more.
+
+    - To view kube Controller manaer in kubeadm setup, it deploys the manager as a pod in kube-system namespace and default file under /etc/kubernetes/manifests/kube-controller-manager.yaml
+    -If deploy as a dedicated service, then we can explore more options under /etc/systemd/system/kube-controller-manager.service
+
+
+5) Kubelet: It register the node with kubernetes cluster and it receives a instruction from API server to deploy the resoruce and then instruct further to runtime engine to deploy the container and report back to API server.
+
+6) Kube-proxy: Within cluster each pods or resrouce can talk to each other, no matter on which nodes they are running, this is possible becuase of network which expanded across all cluster. A pod can be exposed as a service and that service management done by kube-proxy which creates the forward rule and routes to backend assigned pod to that service. It can be done by IPTables.
+It is deployed by kubeadm as Deamon Set (single pod) on each node.
+
+
+** If we want to deploy these componants as a dedicated then we can download the binary from here, extract it, and then run it as a service. To download the kubecontroller-manager, we can use this url: https://storage-googleapis.com/kubernetes-release/release/v1.**/bin/linux/amd54/kubecontroller-Manager (replace the last part if you want to download other resources)
+
+
+7) POD: Is a wrapper to a container, it can run one or more container at a time.
+
+8) ReplicaSet: Maintain the number of of desired pods.
+    # kubectl create -f <replica-file>.yaml
+    Scaling the replicaset:
+        1) update the yaml file with new numbers of replicas required and replace it with:
+            # kubectl replace -f <replica-file>.yaml
+        2) we can directly scale the replica from command line but that will not udpate the replica-file.yaml:
+            # kubectl scale --replicas=<new_number> -f <replica-file>.yaml
+            OR 
+            # kubectl scale --replica=<new_number> replicaset <name_of_replicaset>
+    NOTE ---> Replicaset can manage the all pods which has label as app: nginx-app whether or not these pods are created before the replicaset created.  
+
+9) Deployment: It is a feature to upgrade the underlying instances or pods in a controlled manner. By default, it uses Rolling Updates to upgade the applicaiton or pods running where we can control the updates, rolled back, pause or resume the changes update.
+Deployement is the top most layer in hierarchy, staring from container --> pod --> replica set --> deployment.
+We can use the same yaml file which we have for replicaset (check understand_yaml.txt file) except the kind which will be deployment in this case. Once we create the deployment, it will create the replicaset and then pods.
+
+10) Services: Which enables the communication outside of cluster for the applicaiton running inside the pods or inside as well with other PODs inside the cluster.
+Service listen to a port on the Node and forward requests on that port to a port on the POD running the application.
+    Type of Service:
+        a) NodePort: it listen to a port on the Node and forward requests to pods using service port.
+            - port range: 30000 to 32767
+            - any port assigned to NODE IP from this range and then request will be forwarded to service port (which referes as PORT) and then service furhter forwarded the request to pod port (which referes to TargetPort) where actual application is running.
+
+        b) ClusterIP: It creates a virtual IP inside the cluster to enable communication between different services such as front end and backend servers.
+            It is a default type of service.
+
+        c) LoabBalancer: It supported in cloud provider, to distribute the loads amoung all pods where applicaiton is running.
+                ** For virtual environment, we can create a dedicated VM as LoabBalancer and set up it using nginx or HAProxy.
+
+11) Namespcae:
+        A isolated place for all its resources.
+        We can create a dedicated or purpose wise namespace to work into it differently.
+        Each namespace has their own resources, policies and roles.
+        Within a namespace, resource can talk to each other with name only.
+        But if any reosurce from one namespace need to connect with other resource in other namespace then it must use the full name of that resouce with namespace.
+        e.g.
+        <resouce_name>.<Namespace_name>.svc.cluster.local (where cluster.local is the default domain name of cluster)
+
+        When a service is created, dns entry will be added in this format for each namespace.
+
+        When we create any resource or list any resource, it will list the resources from default namespace or whereever you are working. If you want to list or create in other namespace, sitting in current namespace then you need to specify the --namespace or -n flag with command.
+
+        In definition file also, we can specify the namespace under metadata for that resource. like:
+
+        apiVersion: v1
+        kind: Pod 
+        metadata:
+            name: my_pod
+            namespace: dev
+            labels:
+                app: my_app
+        spec:
+            containers:
+            - name: my_pod
+              image: nginx
+
+        --> to create a name space,
+        # kubectl create namespace dev
+        OR
+        # using definition file:
+        apiVersion: v1
+        kind: Namespace 
+        metadata:
+            name: dev
+        # kubectl create -f definition_file.yaml
+
+        --> To switch to different namespace
+        # kubectl config set-context $(kubectl config current-context) --namespace=dev
+        ( this command will switch to dev namespace and set permanantly dev as current namespace)
+
+        --> to list the all the pods or resources from all namespaces
+        # kubectl get pods --all-namespace
+
+        --> We can create or set the quota limit to a namespace
+        we can define in definition file where kind is ResourceQuota
+
+        apiVersion: v1
+        kind: ResourceQuota
+        metadata:
+            name: compute-limit
+            namespace: dev
+        spec:
+            hard:
+                pods: "5"
+                requests.cpu: "4"
+                requests.memory: 5Gi
+                limits.cpu: "10"
+                limits.memory: 10Gi
+
+        ** We can test the quota limit, by simply creating more containers
+        # kubectl run web1--image=amitaryan0010/path4cloud-web
+
+
+
+
