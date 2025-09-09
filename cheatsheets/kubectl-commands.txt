@@ -12,6 +12,17 @@
 
     # kubectl get all (to check the all resources at once)
 
+    # kubectl create deployment --image=nginx nginx
+    # kubectl expose deployment nginx --port 80
+    # kubectl edit deployment nginx
+    # kubectl sclae deployment nginx --replicas=5
+    # kubectl set image deployment nginx nginx=ngninx:1.22
+    # kubectl create -f nginx.yaml
+    # kubectl replace -f nginx.yaml
+    # kubectl replace --force -g nginx.yaml (to create the resouce from scratch)
+    # kubectl delete -f nginx.yaml
+
+
 ###
 Replica Set
     Scaling the replicaset:
@@ -21,3 +32,16 @@ Replica Set
             # kubectl scale --replicas=<new_number> -f <replica-file>.yaml
             OR 
             # kubectl scale --replica=<new_number> replicaset <name_of_replicaset>
+
+
+##########
+
+So far, we have seen the imperative approach with kubectl command where we need to talk about all operation to perform.
+
+We can do as declarative way where kubectl can figure out its own what operation need to perform.
+we can use:
+    # kubectl apply -f <definition_file>.yaml
+    OR if we have mulitple .yaml files then simply we can give directory path4cloud
+    # kubectl apply -f /path/to/all_config_files
+
+    

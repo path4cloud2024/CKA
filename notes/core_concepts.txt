@@ -128,6 +128,154 @@ Service listen to a port on the Node and forward requests on that port to a port
         ** We can test the quota limit, by simply creating more containers
         # kubectl run web1--image=amitaryan0010/path4cloud-web
 
+        **>> Doing it as declarative approach with kubectl apply command
+
+        while doing with apply, it creates a JSON file as well to compare the local configuration file with live configuration file. If no JSON file, then apply will consider a new object and create a live configurationfor that object. If object is there, then a local configuration will be compared with local and live and accordinlgly, decision will be make and perform the operation.
+
+        JSON format data is also stored in live config file only under object metadata as annotations.
+
+        metadata:
+            annotations:
+                kubectl.kubernetes.io/last-applied-configuration: |
+                {"apiVersion":"v1","kind":"Namespace","metadata":{"annotations":{},"name":"dev"}}
+                creationTimestamp: "2025-09-08T20:59:20Z"
+
+
+
+12)  Scheduling:
+        When we schedule any pode, by default scheduler will assign the node to a pods and adds another property in pod definition file in etcd as nodeName.
+
+        # kubectl get pods web1 -o yaml  | grep -i node
+        nodeName: k8node1
+
+        Once this nodeName is assgined by creating the Binding Object then pod will be scheduled.
+
+        If we want to assign a new pod to a particular node then we can set this property in pod definition file under spec section of container.
+
+        And if we want to set this property for a existing pod then we can do by following only, not by editing the pod definition file.
+
+        - we can create a manual binding object and send a post reqeust to the pod binding API. In the binding object you can specify the target node with the name of node. Then send a post request to the pods binding API with the data  set to the binding object in a JSON format. 
+        we must convert the yaml format to json format for API call:
+
+        apiVersion: v1
+        kind: Binding
+        metadata:
+            name: <pod_name>
+        target:
+            apiVersion: v1
+            kind: Node
+            name: <node_name>
+
+        YAML ---> JSON
+
+        # curl --header "Context-Type:applicaiton/json" --request POST --data '{"apiVersion":"v1". "kind": "Binding", "metadata: "name":"<pod_name>"", "target".........} http://$SERVER/api/v1/namespaces/default/pods/$PODNAME/binding/
+
+    --> Labels & Selectors:
+        Lables: are just a tag or category which we can put for any object under metadata sections.
+
+        Selectors: are the filter to select the right object using Labels which we put on object.
+
+        Apart from the Labels and Selectors, we have annotations as well which might be defined for other purposes, like build information, chnange and release version for deployment, contact details for support or any other kind of integration.
+
+        ** to filter or list the pods or any other object, we can use --selector flag:
+        # kubectl get pods --selector key1=value1,key2=value2...
+        (use --no-headers if you don't want to print the header, like NAME READY STATUS)
+
+
+    --> Taints and Tolerations
+        Taints: are a kind of restrcition or limitation which we put on Nodes, in order to allow only the choosen workload should be scheduled on tainted nodes. Let say, node1 is having a SSD or some special type of CPU/GPU and we want only compatiable or high performance applicaiton pods will be scheduled on this node, then we can put the taint on this node and then it will accept the only those pods which can handle the taint via tolerations.
+
+        Tolerations: As specified above, which can handle the defined taint on nodes, only those pods will be scheduled on tainted nodes. So, Tolerations can be applied to PODS only.
+
+        Let say, we have 3 worker node cluster and 3 pods, needs to be scheduled. We have applied the taint to Node1 and pod2 can tolerate that taint. Then, pod1 and pod3 can't be scheduled on Node1 whereas pod2 can be scheduled on Node1 but there is no gurantee it will scheduled on Node1, it can be scheduled on another node as well, until Affinity rules are not there.
+
+        How to apply the taint and tolerations:
+
+        Taint is just a key"value pair to apply the taint.
+
+        # kubectl taint nodes <node_nam> key=value:taint:taint-effect
+
+        ** we have 3 kinds of taint-effect:
+        a) NoSchedule (no pods will be scheduled)
+        b) PreferNoSchedule (system will try to avoid the schedule any pods)
+        c) NoExecute (No new pods will be scheduled, and existing pods will be evicted if they are not able to tolerate)
+
+        e.g.
+        # kubectl taint nodes k8node1 disk=ssd:NoSchedule
+
+        - to apply the tolerations on pod, we can add tolerations: property with other key:values as array under spec section in pod definition file:
+
+    spec:
+        tolerations:
+        - key: "disk"
+          operator: "Equal"
+          value: "ssd"
+          effect: "NoSchedule"
+
+        ** Master node in kubernetes cluster is set as NoSchedule by default, so no any pods will be scheduled on master nodes except the kube-systems pods.
+
+        # kubectl describe node k8master | grep -i taint
+        Taints:             node-role.kubernetes.io/control-plane:NoSchedule
+
+        ** To remove the taint from a node, get the taint effect and run this:
+        # kubectl taint nodes <node_name> <put_taint_effect>- (make sure at the end, we put - (minus) symbol to remove this)
+
+        Follow the documents for more information:
+        https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+        
+    --> Node Selectors:
+        There are 2 ways to define the pods to be scheduled on a particular node.
+        1) with labels: we can set the labels to a node like any key:value pair and while defining the pod definition file, we can use the nodeSelector property and set that key:value pair and secheduler will match the lable and put the pods on desired node.
+        * label a node first then define the same in pod definition file:
+        # kubectl lable nodes <node_name> <key>:<value>
+        # kubectl get nodes --show-labels
+
+        * put the selector in file now under spec section:
+        nodeSelector:
+            <key>: <value>
+        
+        ** but we have limitation with nodeSelector if we need to put more complex filter like, if we have two lables keys or some condition based expression (OR, Not) then we can't acheive this with nodeSelector. So, let see 2nd option.
+
+        2) Node Affinity:
+        It also servers the same purpose but with advanced option. We need to define the affinity property in pod definition file.
+        * setting in pod definition file:
+        affinity:                                                   (property)
+            nodeAffinity:                                           (in this case, its nodeAffinity)
+                requiredDuringSchedulingIgnoredDuringExecution:     (Affinity Type)
+                    nodeSelectorTerms:                              (it is an array wherer we specify the expression)
+                    - matchExpressions:                             (this array will have key, operator and values)
+                      - key: <label_key>                            (key will look for the key applied on nodes)
+                        operator: In                                (operators is IN, which will make sure, any values from list)
+                        values:                                     (list of values)
+                        - <label_value_1>
+                        - <label_value_2>
+                           
+                ** If you want to use NotIn Operator which will make sure, pod can be placed on any node which don't have below value.
+                ** If you have a fixed key:value set to nodes, then we can simply ignore the values and set the operatore to "Exists" which will check only if the label_key is exits or not without checking its values.
+
+                ** check the documents for more operator and nodeAffinity properties:
+                https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+                https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#operators
+ 
+        We need to read the documents and understand all the possible scenario to place the pods as per node affinity rules.
+        Lets take a look to node affinity types:
+        - Type of node affinity defines the behaviour of the scheduler with respect to node affinity and the stages in the lifecycle of the pod.
+        - there are 2 types of node affinity:
+        a) requiredDuringSchedulingIgnoredDuringExecution (with this type, it will check the affinity rule and if satisfies then only it will schedule, else not, with Ignored execution is if Lables are removed or updated, then that will not affect the curretly running pods)
+        b) preferredDuringSchedulingIgnoredDuringExecution (with this type, it will check the affinity rule and even it doesn't satisfy then it will try to best node for scheduling, with Ignored execution is same as above)
+
+    ** We can put Taint & Tolerations and nodeAffinity together to achive the more desired and controlled state.
+
+    --> Resource limits 
+        
+
+
+
+
+
+
+
+
 
 
 
