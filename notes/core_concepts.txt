@@ -126,7 +126,7 @@ Service listen to a port on the Node and forward requests on that port to a port
                 limits.memory: 10Gi
 
         ** We can test the quota limit, by simply creating more containers
-        # kubectl run web1--image=amitaryan0010/path4cloud-web
+        # kubectl run web1 --image=amitaryan0010/path4cloud-web
 
         **>> Doing it as declarative approach with kubectl apply command
 
@@ -267,7 +267,65 @@ Service listen to a port on the Node and forward requests on that port to a port
     ** We can put Taint & Tolerations and nodeAffinity together to achive the more desired and controlled state.
 
     --> Resource limits 
+        In any cluser or nodes, we have 3 main compute which is likely to be reqruired to run an applicaiton and those are CPU, Memory and Disk.
+        Same way, in kubernetes also, to host a pods we need these compute resources and scheduler will check the node resources availability and check if a pod can accomodate to a particular node or find a good node where a pod can be scheduled.
+
+        By default, when a pod is scheduled, kubernetes assumes a pod or container requrires a .5 cpu and 256 MiB memory which is a minimum requests from a pod to schedule and scheduler finds a node where it can be scheduled. But we can control this limit if we need more or less resources for an applicaiton to run. We can specify it while creating a container with kubectl command or in a resource definition file under spec section with resoruces property.
+
+        (.5 is 500 m or milli for CPU, we can specify as much as low as 1m (or 0.01) for a CPU but not lower than that. If we specify 1 cpu then it means, a 1 phyical cpu or 1 core or 1 Hyperthread.)
+
+        (for memory, we can specify 1M (1 megabytes = 1,000,000 bytes) or 1Mi (1 Mebibytes = 1,048,576 bytes))
+
+        ** By default, kubernetes sets a limit of 1 vCPU and 512Mi of memory if a container requires a more CPU or Memory then it con go up to this limit.
+        ** But we can set the limit to a container. Request is soemthing when a pod is started it can reqeust the specified amount of CPU and memory in definiion file and during its lifecycle, if its required more cpu or memory then it can go upto defined Limit for vCPU and Memory. For CPU, it can't go beyond defined limit since kubernetes throttled the CPU but for memory it can go but it will be terminated if it tries to use it constantly.
+        ** it can be specified under resources section in pod definiion file.
+        resources:
+          requests:
+            memory: "500Mi"
+            cpu: 1
+          limits:
+            memory: "1Gi"
+            cpu: 2
+        (note: we need to set the resource for each container)
+
+        ** if you want your pod to pick the default reqeust value then we need to define kind of LimitRange:
+        apiVersion: v1
+        kind: LimitRange
+        metadata:
+            name: memory-range
+        spec:
+            limits:
+            - default:
+                memory: 512Mi
+              defaultRequest:
+                memory: 256Mi
+              type: Container
+
+        ** Similarly, we can set the default CPU limit with kind LimitRange
+        apiVersion: v1
+        kind: LimitRange
+        metadata:
+            name: cpu-range
+        spec:
+            limits:
+            - default:
+                cpu: 1
+              defaultRequest:
+                cpu: .5
+            type: Container
+
+        ** https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-default-namespace/
+        ** https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-default-namespace/
+        ** https://kubernetes.io/docs/tasks/configure-pod-container/assign-memory-resource
+
+
+
+
         
+
+
+
+
 
 
 
