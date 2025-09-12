@@ -10,3 +10,8 @@ spec:
     image: amitaryan0010/path4cloud-web:latest
     ports:
     - containerPort: 80
+  tolerations:
+  - key: disk
+    operator: Equal
+    value: ssd
+    effect: NoSchedule
