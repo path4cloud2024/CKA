@@ -266,7 +266,7 @@ Service listen to a port on the Node and forward requests on that port to a port
 
     ** We can put Taint & Tolerations and nodeAffinity together to achive the more desired and controlled state.
 
-    --> Resource limits 
+    --> Resource requests and limits 
         In any cluser or nodes, we have 3 main compute which is likely to be reqruired to run an applicaiton and those are CPU, Memory and Disk.
         Same way, in kubernetes also, to host a pods we need these compute resources and scheduler will check the node resources availability and check if a pod can accomodate to a particular node or find a good node where a pod can be scheduled.
 
@@ -276,8 +276,8 @@ Service listen to a port on the Node and forward requests on that port to a port
 
         (for memory, we can specify 1M (1 megabytes = 1,000,000 bytes) or 1Mi (1 Mebibytes = 1,048,576 bytes))
 
-        ** By default, kubernetes sets a limit of 1 vCPU and 512Mi of memory if a container requires a more CPU or Memory then it con go up to this limit.
-        ** But we can set the limit to a container. Request is soemthing when a pod is started it can reqeust the specified amount of CPU and memory in definiion file and during its lifecycle, if its required more cpu or memory then it can go upto defined Limit for vCPU and Memory. For CPU, it can't go beyond defined limit since kubernetes throttled the CPU but for memory it can go but it will be terminated if it tries to use it constantly.
+        ** By default, kubernetes sets a limit of 1 vCPU and 512Mi of memory if a container requires a more CPU or Memory then it can go up to this limit.
+        ** But we can set the limit to a container. Request is something when a pod is started it can reqeust the specified amount of CPU and memory in definiion file and during its lifecycle, if its required more cpu or memory then it can go upto defined Limit for vCPU and Memory. For CPU, it can't go beyond defined limit since kubernetes throttled the CPU but for memory it can go but it will be terminated if it tries to use it constantly.
         ** it can be specified under resources section in pod definiion file.
         resources:
           requests:
@@ -319,7 +319,21 @@ Service listen to a port on the Node and forward requests on that port to a port
         ** https://kubernetes.io/docs/tasks/configure-pod-container/assign-memory-resource
 
 
+13) Daemon Sets:
+    It is also a replica set which helps you to deploy the multiple replicas of pods across nodes but Daemonset will make sure, one copy of your pod must be running in each node. If a new node is added, automatically a replica of that pod is depoyed to new node and when the node is removed, obvisouly pod is also get removed.
 
+    Use Case of Deamon Set:
+        Monitoring Tools or agents
+        Logs collector
+        Kube proxy
+        Networking Solution
+
+    While defining it make sure, you put a Kind as DaemonSet 
+    How scheduler will make sure, a pod as Daemonset will be scheduled on each node:
+        until K8 v 1.12 - it uses the nodeName property and pu the node name in file and then scheduled the pod on each node.
+        post that, it uses NodeAffinity with default scheduler.
+
+        
 
         
 
