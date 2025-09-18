@@ -4,6 +4,8 @@ metadata:
   name: recreate-dep
   labels:
     app: app-version
+  annotations:
+    kubernetes.io/change-cause: "Initial deployment with v1 image"
 spec:
   replicas: 3 # Number of replicas (pods)
   selector:
