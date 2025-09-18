@@ -1,0 +1,45 @@
+##############
+In Docker file:
+    we have two main parameter in Dockerfile-
+        CMD : when a container is started, this is the command which will get excuted but it is hardcoded in image. below formats are acceptable:
+              CMD <executable binary> [parameter] (e.g. CMD sleep 10)
+              OR
+              CMD ["<executable binary>", "parameter"] (e.g. CMD ["sleep","10"] )
+              In this case, CMD instructions can be replaced entirely.
+        entrypoint: this is command will be executable when the continer get started but will take precendence over CMD. In this case, command line parameter will get appended.
+               ENTRYPOINT ["executable binary"] (e.g. ENTRYPOINT ["sleep"]) (and if it is expecting some arguments then we can pass while launching the container)
+               e.g.:
+               # docker run <image_name> [parameter]
+               (# docker run ubuntu 5) (here we are considering that sleep is defined as entrypoint in image)
+
+               --> Dockerfile
+                    FROM ubuntu
+                    ENTRYPOINT ["sleep"]
+                    CMD ["5"]
+
+                (by default, it will run sleep command for 5 second but if we want to change it then can pass it while launching container)
+                # docker run ubuntu 10
+
+                --> still, we can override the entrypoint with command line:
+                # docker run --entrypoint <another executable binary>  <image_name>  [parameter]
+
+##########################
+In kubernetes Yaml file:
+    If we need to pass the same command and entrypoint instructions in yaml file, then we can define as below:
+    command: ["Binary"] (is equilant to entrypoint)
+    args:["< >"] (is equilant to CMD)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+    e.g:
+    in spec section, under container section where image is mentioned, we can define this:
+    command:["sleep"]
+    args: ["10"]
+    
+    OR (we can pass as an array:
+    command:
+        - "sleep"
+        - "10"
+    
+    OR
+    command: ["sleep", "10"]
+
+    

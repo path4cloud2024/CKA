@@ -193,7 +193,7 @@ Service listen to a port on the Node and forward requests on that port to a port
 
         Taint is just a key"value pair to apply the taint.
 
-        # kubectl taint nodes <node_nam> key=value:taint:taint-effect
+        # kubectl taint nodes <node_nam> key=value:taint-effect
 
         ** we have 3 kinds of taint-effect:
         a) NoSchedule (no pods will be scheduled)
@@ -227,7 +227,7 @@ Service listen to a port on the Node and forward requests on that port to a port
         There are 2 ways to define the pods to be scheduled on a particular node.
         1) with labels: we can set the labels to a node like any key:value pair and while defining the pod definition file, we can use the nodeSelector property and set that key:value pair and secheduler will match the lable and put the pods on desired node.
         * label a node first then define the same in pod definition file:
-        # kubectl lable nodes <node_name> <key>:<value>
+        # kubectl label nodes <node_name> <key>:<value>
         # kubectl get nodes --show-labels
 
         * put the selector in file now under spec section:
@@ -333,8 +333,140 @@ Service listen to a port on the Node and forward requests on that port to a port
         until K8 v 1.12 - it uses the nodeName property and pu the node name in file and then scheduled the pod on each node.
         post that, it uses NodeAffinity with default scheduler.
 
-        
+14) Static Pods:
+    These are standalone pods, not monitored by kube api server and can be deployed via definiion file only. We have designated directory for Static Pods (check the /var/lib/kubelet/config.yaml) where the file can be placed and pods will get start automatically. 
+    We can see, kudeadm uses the static pod mechanism to install the kubernetes, all definiion files are can be find under /etc/kubernetes/manifests direcotry which is also a defualt direcotry for static path.
+    check official information for more info:
+    https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
 
+
+15) Monitoring:
+    It is a right hand of any IT personnal, without monitoring we can't live. We need to know what is happening with our cluster, in terms of nodes health, compute usage, applicaiton performance, network, disk usage, pod consumption.
+
+    Solution to monitor the cluster componants:
+    1) metric servers
+    2) Prometheus
+    3) Elastic Stacks
+    4) Datadog
+    5) Dynatrace
+
+    Monitoring concepts came from HeapSter project which enabled the monitoring and analysis feature for kubernetes which is deprecated now and trimmed down to Metrics Server. Which run in kube-system namespace per cluster. Which retrives metrics from each nodes and pods and stores them in memory, so a result these are not persistent data. 
+    In each node, we have kubelet running along with sub componant called cAdvisore (container advisor) which actually collects the performance from pods and send back to Metrics server using kublet-> API server.
+
+    For minikube setup, we can add this as addon:
+        # minikube addons enable metrics-server
+
+    For full cluster, we can deploy this as standalon pods:
+        # kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+        OR
+        # git clone https://github.com/kubernetes-incubator/metrics-server
+        # kubectl create -f deploy/
+        (it will deploy pods, services and roles to enable metrics servers to check the performance from the nodes of the cluser)
+        root@k8master:~/metrics-server# kubectl top node
+        NAME       CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
+        k8master   354m         17%    1285Mi          68%
+        k8node1    97m          4%     758Mi           40%
+
+        root@k8master:~/metrics-server# kubectl top pods -A
+        NAMESPACE     NAME                               CPU(cores)   MEMORY(bytes)
+        default       nginx                              0m           13Mi
+        default       web1                               0m           9Mi
+        kube-system   coredns-55cb58b774-jsznq           6m           33Mi
+        kube-system   coredns-55cb58b774-pfvng           5m           41Mi
+        kube-system   etcd-k8master                      85m          80Mi
+
+        OR for practices, we can clone from kodekloudhub as well:
+        # git clone https://github.com/kodekloudhub/kubernetes-metrics-server.git
+
+16) Logging:
+    --> in docker
+        # docker run kodekloud/event-simulator
+        OR
+        # docker -d kodekloud/event-simulator (to run as daemon)
+        and then check the live logs:
+        # docker logs -f <container_id>
+
+    --> in kubernetes:
+        - create a file to deploy this pod:
+        apiVersion: v1
+        kind: Pod
+        metadata:
+            name: event-simulator-pod
+        spec:
+            containers:
+            - name: event-simulator
+              image: kodekloudhub/event-simulator
+
+        - then create the pod and run the Logs
+        # kubectl create -f <file.yaml>
+        # kubectl logs -f event-simulator-pod
+
+17) Deployement Strategies:   
+    We have different strategy to manage the lifecycle of an applicaiton in kubernetes:
+    When we deploy the applicaiton as deploymnet then k8s will automatically creates the rollout with its versions. When we deploy a new version of same app that will mark as a new version and if anything is not good with new version then we can easily rollback to old version which was good. This is default behaviour for any strategy we follow, we have following availables:
+    We can check the rollout history and status:
+    # kubectl rollout status deployment <deployment_name>
+    # kubectl rollout history deploymnet <deployment_name>
+    To undo a change:
+    # kubectl rollout undo deployment <deployment_name>
+
+    a) Recreate:
+        where we delete the existing pods with current image and then deploy the new pods with updated image, but we have downtime with this strategy. 
+    b) Rolling updates:
+        where a each pod will be replaced with a new pod with udpated image by defulat one by one, not all at a time, so no downtime will be occurred. And this is also a default strategy in kubernetes.
+
+    Update can be anything, since we have a definiion file for our deployment so when ever we have a rquirement, we can change in that file and apply it again. Then deloyment will create a new replica set and create the new pod.
+    There are two ways:
+        * after making changes in file, apply it.
+            # kubectl apply -f file.yaml (this way we have track of a new updated file)
+        * directly we can set the new parameter or property
+            # kubectl set image deployment <deployment_name> (this way, it will not update your config file)
+
+        * to check the status of rollout:
+        # kubectl rollout history deploymnet <deployment_name>
+
+        * if want to rollback
+        # kubectl rollout undo deployment <deployment_name>
+
+18) Additional field to container Spec Section:
+        -  command and argument:
+            If we need to pass the some command and entrypoint instructions in yaml file, then we can define as below:
+            command: ["Binary"] (is equilant to entrypoint)
+            args:["< >"] (is equilant to CMD)
+            e.g:
+            in spec section, under container section where image is mentioned, we can define this:
+            command:["sleep"]
+            args: ["10"]
+    
+            OR (we can pass as an array)
+            command:
+            - "sleep"
+            - "10"
+    
+            OR
+            command: ["sleep", "10"]
+
+        - environment variables in yaml file:
+            we can define this env property under spec container section:
+            env:
+                - name: < >
+                  value: < >
+    
+            * env is an array which has its items as key:value pair, where name is the environment variable and value is value to that environment.
+
+19) ConfigMaps:
+        If we have multiple environment and values then its very hard to manage it within yaml file. So we can create an another object called, ConfigMaps.
+        
+        and in yaml file, we can directly refer it as below:
+                    env:
+                - name: < >
+                  valueFrom:
+                    configMapKeyRef:
+
+            env:
+                - name: < >
+                  valueFrom:
+                    secretKeyRef:
         
 
 
