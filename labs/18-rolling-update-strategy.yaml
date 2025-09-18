@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rolling-dep
+  labels:
+    app: app-version
+spec:
+  replicas: 3 # Number of replicas (pods)
+  selector:
+    matchLabels:
+      app: app-version
+  template:
+    metadata:
+      labels:
+        app: app-version
+    spec:
+      containers:
+      - name: web-dep
+        image: amitaryan0010/path4cloud-dep:v1 # Replace with your image
+        ports:
+        - containerPort: 80 # Container's internal port
+
+### Expose it (optional)
+
+### kubectl expose deployment rolling-dep --type=NodePort --port=8080 --target-port=80
