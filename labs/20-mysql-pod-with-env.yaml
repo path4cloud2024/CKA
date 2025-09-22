@@ -18,4 +18,4 @@ spec:
 ## kubectl run mysql --image=mysql --env="MYSQL_ROOT_PASSWORD=cloud@123"
 
 
-## kubectl exec -it mysql -- mysql -uroot (will ask for password, provide which has been set above)
+## kubectl exec -it mysql -- mysql -uroot -p (will ask for password, provide which has been set above)
