@@ -3,5 +3,4 @@ kind: ConfigMap
 metadata:
   name: mysql-cm
 data:
-  name: MYSQL_ROOT_PASSWORD
-  root_psd: Cloud@123
+  MYSQL_ROOT_PASSWORD: Cloud@123

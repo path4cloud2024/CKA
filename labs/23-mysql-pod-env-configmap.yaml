@@ -15,6 +15,6 @@ spec:
       valueFrom:
         configMapKeyRef:
           name: mysql-cm
-          key: "root_psd"
+          key: MYSQL_ROOT_PASSWORD
 
 ## kubectl exec -it mysql -- mysql -uroot -p (will ask for password, provide which has been set above)
