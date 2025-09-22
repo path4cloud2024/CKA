@@ -454,19 +454,109 @@ Service listen to a port on the Node and forward requests on that port to a port
     
             * env is an array which has its items as key:value pair, where name is the environment variable and value is value to that environment.
 
-19) ConfigMaps:
-        If we have multiple environment and values then its very hard to manage it within yaml file. So we can create an another object called, ConfigMaps.
-        
-        and in yaml file, we can directly refer it as below:
-                    env:
-                - name: < >
+            ** we can define the environment values using configmaps and secret as well:
+            env:
+                - name: <env_name>
                   valueFrom:
                     configMapKeyRef:
+                        name: <configmap_name>
+                        key: <key_name>
 
             env:
                 - name: < >
                   valueFrom:
                     secretKeyRef:
+                        name: <secret_name>
+                        key: <key_name>
+
+19) ConfigMap:
+        is used to pass the configuration data in the key value pair to the pod, like you need to pass the environment values or some meta data of app then we can inject with configmaps.
+        Creating the configmaps via command line:
+        -  Create a new config map with key:value pair
+        # kubectl create configmap <configmap_name> --from-literal=<key>=<Value>
+
+        - Create a new config map named my-config based on folder bar
+        # kubectl create configmap my-config --from-file=path/to/bar
+
+        - Using declarative approach with definiion file:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+            name: my-config
+        data:
+            user: root
+            psd: Cloud@123
+
+        # kubectl create -f <file_name>
+
+        ** injecting the configmap in pod definiton file:
+        under container in spec section, we can put the new property called "envFrom" and introduce our configmap:
+        (envFrom is a list and can accept many Config in smae file)
+
+        envFrom:
+            - configMapRef:
+                name: <configmap_name>
+
+        ** It can be injected from file as well as Volumes property (will see later)
+        ** but configmap is stored the value in clear text format
+
+20) Secrets:
+    is used to store the secret information like access keys or password since it stored the values in encrypted format.
+        - Create a new secret with key:value pair
+        # kubectl create secret generic <secret_name> --from-literal=<key>=<Value>
+
+        - Using declarative approach with definiion file:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+            name: my-secret
+        data:
+            user: root
+            psd: Cloud@123
+
+        ** But we need to store the values in hashed format.
+        ** to convert the data into hashed format with base64 encoded format:
+        # echo -n 'root' | base64
+        # echo -n 'Cloud@123' | base 64
+
+        and then put the generated hashed value into secret yaml file.
+        ** to decode the value if required then:
+        # echo -n 'hashed_value' | base64 --decode (will show the clear text value)
+
+        ** injecting the secret in pod definiton file:
+        under container in spec section, we can put the new property called "envFrom" and introduce our secret:
+        (envFrom is a list and can accept many secret in smae file)
+
+        envFrom:
+            - secretRef:
+                name: <secret_name>
+
+        ** It can be injected from file as well as Volumes property (will see later)
+        volumes:
+        - name: <voluem_name>
+          secret:
+            secretName: <secret_name>
+
+        ** to make the secret avaialble as files we need to create a file with key name and put the value inside the file.
+
+21) Multicontainer Pods:
+        When we need a functionality to work together like webserve rand logging agent that can scale up and down together.
+        Each container in single pods shares the same network/storage and refer to each other as localhost
+
+        Basically, when we design the multi container pod then we have 3 patters:
+        a) Sidecar container (loggin purpose)
+        b) Adapter
+        c) Ambassador
+
+
+22) Init Container:
+    When a requirement like a container can run only once (in order to run a task which is rqeuired only once like update or pulling data from repo), then we can inroduce the init container under container sectiom, this init container will run only when the pod is created very first time and after that if pod restarts then it will never run the init container, rest container will be started only and only when init container is succeded.
+
+    
+
+
+
+
         
 
 

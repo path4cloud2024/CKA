@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  containers:
+  - name: mysql
+    image: mysql
+    ports:
+    - containerPort: 3306
+    env:
+    - name: MYSQL_ROOT_PASSWORD
+      value: "Cloud@123" # required
+
+## kubectl run mysql --image=mysql
+## kubectl run mysql --image=mysql --env="MYSQL_ROOT_PASSWORD=cloud@123"
+
+
+## kubectl exec -it mysql -- mysql -uroot (will ask for password, provide which has been set above)
