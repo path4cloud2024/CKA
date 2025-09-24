@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  hostPath:
+    path: /mnt/data
+
+# Since no storageClassName, Kubernetes uses the “no storageClass” default behavior and binds automatically if capacity & access mode match.

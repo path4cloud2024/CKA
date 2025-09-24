@@ -277,12 +277,12 @@ Service listen to a port on the Node and forward requests on that port to a port
         (for memory, we can specify 1M (1 megabytes = 1,000,000 bytes) or 1Mi (1 Mebibytes = 1,048,576 bytes))
 
         ** By default, kubernetes sets a limit of 1 vCPU and 512Mi of memory if a container requires a more CPU or Memory then it can go up to this limit.
-        ** But we can set the limit to a container. Request is something when a pod is started it can reqeust the specified amount of CPU and memory in definiion file and during its lifecycle, if its required more cpu or memory then it can go upto defined Limit for vCPU and Memory. For CPU, it can't go beyond defined limit since kubernetes throttled the CPU but for memory it can go but it will be terminated if it tries to use it constantly.
-        ** it can be specified under resources section in pod definiion file.
+        ** But we can set the limit to a container. Request is something when a pod is started it can reqeust the specified amount of CPU and memory in definition file and during its lifecycle, if its required more cpu or memory then it can go upto defined Limit for vCPU and Memory. For CPU, it can't go beyond defined limit since kubernetes throttled the CPU but for memory it can go but it will be terminated if it tries to use it constantly.
+        ** it can be specified under resources section in pod definition file.
         resources:
           requests:
             memory: "500Mi"
-            cpu: 1
+            cpu: 1 
           limits:
             memory: "1Gi"
             cpu: 2
@@ -334,8 +334,8 @@ Service listen to a port on the Node and forward requests on that port to a port
         post that, it uses NodeAffinity with default scheduler.
 
 14) Static Pods:
-    These are standalone pods, not monitored by kube api server and can be deployed via definiion file only. We have designated directory for Static Pods (check the /var/lib/kubelet/config.yaml) where the file can be placed and pods will get start automatically. 
-    We can see, kudeadm uses the static pod mechanism to install the kubernetes, all definiion files are can be find under /etc/kubernetes/manifests direcotry which is also a defualt direcotry for static path.
+    These are standalone pods, not monitored by kube api server and can be deployed via definition file only. We have designated directory for Static Pods (check the /var/lib/kubelet/config.yaml) where the file can be placed and pods will get start automatically. 
+    We can see, kudeadm uses the static pod mechanism to install the kubernetes, all definition files are can be find under /etc/kubernetes/manifests direcotry which is also a defualt direcotry for static path.
     check official information for more info:
     https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
 
@@ -415,7 +415,7 @@ Service listen to a port on the Node and forward requests on that port to a port
     b) Rolling updates:
         where a each pod will be replaced with a new pod with udpated image by defulat one by one, not all at a time, so no downtime will be occurred. And this is also a default strategy in kubernetes.
 
-    Update can be anything, since we have a definiion file for our deployment so when ever we have a rquirement, we can change in that file and apply it again. Then deloyment will create a new replica set and create the new pod.
+    Update can be anything, since we have a definition file for our deployment so when ever we have a rquirement, we can change in that file and apply it again. Then deloyment will create a new replica set and create the new pod.
     There are two ways:
         * after making changes in file, apply it.
             # kubectl apply -f file.yaml (this way we have track of a new updated file)
@@ -478,7 +478,7 @@ Service listen to a port on the Node and forward requests on that port to a port
         - Create a new config map named my-config based on folder bar
         # kubectl create configmap my-config --from-file=path/to/bar
 
-        - Using declarative approach with definiion file:
+        - Using declarative approach with definition file:
         apiVersion: v1
         kind: ConfigMap
         metadata:
@@ -489,7 +489,7 @@ Service listen to a port on the Node and forward requests on that port to a port
 
         # kubectl create -f <file_name>
 
-        ** injecting the configmap in pod definiton file:
+        ** injecting the configmap in pod definition file:
         under container in spec section, we can put the new property called "envFrom" and introduce our configmap:
         (envFrom is a list and can accept many Config in smae file)
 
@@ -505,7 +505,7 @@ Service listen to a port on the Node and forward requests on that port to a port
         - Create a new secret with key:value pair
         # kubectl create secret generic <secret_name> --from-literal=<key>=<Value>
 
-        - Using declarative approach with definiion file:
+        - Using declarative approach with definition file:
         apiVersion: v1
         kind: ConfigMap
         metadata:
@@ -523,7 +523,7 @@ Service listen to a port on the Node and forward requests on that port to a port
         ** to decode the value if required then:
         # echo -n 'hashed_value' | base64 --decode (will show the clear text value)
 
-        ** injecting the secret in pod definiton file:
+        ** injecting the secret in pod definition file:
         under container in spec section, we can put the new property called "envFrom" and introduce our secret:
         (envFrom is a list and can accept many secret in smae file)
 
@@ -544,7 +544,7 @@ Service listen to a port on the Node and forward requests on that port to a port
         Each container in single pods shares the same network/storage and refer to each other as localhost
 
         Basically, when we design the multi container pod then we have 3 patters:
-        a) Sidecar container (loggin purpose)
+        a) Sidecar container (logging purpose)
         b) Adapter
         c) Ambassador
 
@@ -552,8 +552,269 @@ Service listen to a port on the Node and forward requests on that port to a port
 22) Init Container:
     When a requirement like a container can run only once (in order to run a task which is rqeuired only once like update or pulling data from repo), then we can inroduce the init container under container sectiom, this init container will run only when the pod is created very first time and after that if pod restarts then it will never run the init container, rest container will be started only and only when init container is succeded.
 
-    
+23) Cluster Maintenance:
+        - OS upgrade
+        - Implication of loosing a node from the cluster
+        - How to take a node out of cluseter and add back
+        - Cluster upgade
 
+        - kubernetes releases and versions:
+
+        a) Drain/Cordon/Uncordan:
+            When we take the node out of cluster then we can drain the node or cordon it to mark it unschedulable for any new pods then we can perform the manitenance on this node.
+            # kubectl drain <node_name> (drian operation moved all the workloads/pods to another node in cluster and mark the node as unschedulable)
+            OR
+            # kubectl cordon <node_name> (this operation will mark the node as unschedulable but will not move the pods to another nodes)
+
+            ** drain can't delete or move the DaemonSet pods to different nodes.
+            ** If any standlaone pod is running on target node then we have to do drain with --force option.
+
+            ** once the node is drained or all pods are evicted then we can take it down and update the node.
+
+        b) kuberenetes releases:
+            # kubectl get nodes - shows the version like: v1.30.14
+            here v1 - major version
+                 30 - is minor version which usually released in every couple of months with new features and functionalities.
+                 14 - is patch version to fix the bug
+
+                 It has alpha and beta and then stable stages to make the fixes or new versions avaialble.
+
+            with kuberenetes, as a part of same project other componant also gets the same version and pathes like:
+                kube-apiserver
+                controller-manager
+                kube-scheduler 
+                kubelet 
+                kube-proxy
+                kubectl
+
+            but other componant may have different versions since they are part of different projects:
+                ETCD Cluster
+                CoreDNS
+
+        c) Cluster Upgrade Progress:
+            Though, we discuss the all componants of kuberenetes should have the same version but it can have different release and versions.
+            Kube-apiserver is main componant in kuberenetes architecture so it must be having the same or higher version from another componant.
+            e.g.
+            Kube-apiserver                      ---> version N
+            contoller-manager, kube scheduler   ---> version N-1 (can be one lower version than kube-apiserver or same versions)
+            kubelet, kube-proxy                 ---> version N-2 (can be two lower version than kube-apiserver or same versions)
+
+            whereas KUBECTL can have one higher version than kube-apiserver or same version or one lower version which allows us to bring up live updates.
+            kubectl                             ---> N+1 OR N OR N-1
+
+            ** we can also upgrade the componant to componant if required.
+
+            ** At any time, kuberenetes supports only up to recent three minor versions. Let say, you are at v1.30 so it can support, v1.29 and v1.28 but not v1.27
+
+            Master Node Upgrade:
+                a) If in cloud, then few click and cluster will be upgraded.
+                b) kubeadm approach (kubeadm upgrade plan, and then upgrade)
+                c) Individual componant from scratch then manually upgrade the different componant.
+
+            Steps to follow:
+                a) Upgrade master node first and then worker nodes.
+                b) while upgrading master node at that time api-server, scheduler and contorl manager is down so all management fucntion is down but worker nodes and already running pods still continue to run. We can't access the cluster or if any pods down then no healing, no new pods will be scheduled.
+                c) now we can follow different strategy to upgrade the nodes:
+                    i) all at a time (complete downtime)
+                    ii) one node at a time, shift current workload from node to other nodes, upgrade it and join back.
+                    iii) add a newly created node with latest version, shift workload from old node to new node until all nodes are gets replaced.
+
+                # kubeadm upgrade plan <version_number> (will list all the current and target vesion)
+
+                ** check cluster-upgrade-logs.txt under notes directory in this repository.
+
+            ####################################
+            ####################################
+
+                CLUSTER Backup and Restore
+
+            #####################################
+            #####################################
+
+            What we can backup?
+                - Object Definition file: Keep at central place like Github to make the copy of all files.
+                - Resource configuration: you can query the api server and store all the resources in a yaml file and take the back of that file.
+                    # kubectl get all --all-namespaces -o yaml > all-resources.yaml
+                    (we can use the tool like Velero by Haptio which will help you to take the backup of cluster using kube-apiserver.) 
+                - ETCD Cluster: It stores the information about the state of our cluster, like nodes, cluster info, and all resources.
+                    It has a preferred directory where it stores all the information, we can tkae the backup of that folder.
+                    ETCD comes with inbuilt snapshot solution, which can be taken using etcdctl command like (# etcdctl snapshot save snapshot.db), once created then we can check the status using (# etcdctl snapshot status snapshot.db)
+                    To restore the cluster from etcd backup: 
+                    a) stop the kube-api sevrer (which will restrict the new resource added or restore all requrired to start it again.)
+                    b) then run:
+                        # etcdctl snapshot restore --data-dir <path_to_snapshot.db_file_directory_to_restore> <path_to_snapshot.db>
+                    c) configure the etcd configuration amnifest file (and change the hostpath to new restored directory) or service file to use the new location.
+                    d) systemctl daemon-reload
+                    e) restart etcd server
+                    f) restart the kube-api server
+
+                    ** if required, we need to specify the etcd ca and certificate file for authenication, endpoints for etcd cluster and keys for etcd server)
+                    (# etcdctl snapshot save --endpoint=<> --cacert=<> --cert=<> --key=<>)
+                    (check explore_etcd.txt file)
+                    root@k8master:~# kubectl exec -it etcd-k8master -n kube-system -- etcdctl version
+                    etcdctl version: 3.5.15
+                    API version: 3.5
+
+                    root@k8master:~# kubectl exec -it etcd-k8master -n kube-system -- etcdctl snapshot save -h
+                    NAME:
+                            snapshot save - Stores an etcd node backend snapshot to a given file
+
+                    USAGE:
+                            etcdctl snapshot save <filename> [flags]
+
+                    OPTIONS:
+                    -h, --help[=false]    help for save
+
+                    GLOBAL OPTIONS:
+                        --cacert=""                               verify certificates of TLS-enabled secure servers using this CA bundle
+                        --cert=""                                 identify secure client using this TLS certificate file
+                        --command-timeout=5s                      timeout for short running command (excluding dial timeout)
+                        --debug[=false]                           enable client-side debug logging
+                        --dial-timeout=2s                         dial timeout for client connections
+                    -d, --discovery-srv=""                        domain name to query for SRV records describing cluster endpoints
+                        --discovery-srv-name=""                   service name to query when using DNS discovery
+                        --endpoints=[127.0.0.1:2379]              gRPC endpoints
+                        --hex[=false]                             print byte strings as hex encoded strings
+                        --insecure-discovery[=true]               accept insecure SRV records describing cluster endpoints
+                        --insecure-skip-tls-verify[=false]        skip server certificate verification (CAUTION: this option should be enabled only for testing purposes)
+                        --insecure-transport[=true]               disable transport security for client connections
+                        --keepalive-time=2s                       keepalive time for client connections
+                        --keepalive-timeout=6s                    keepalive timeout for client connections
+                        --key=""                                  identify secure client using this TLS key file
+                        --password=""                             password for authentication (if this option is used, --user option shouldn't include password)
+                        --user=""                                 username[:password] for authentication (prompt if password is not supplied)
+                    -w, --write-out="simple"                      set the output format (fields, json, protobuf, simple, table)
+
+                ** we can describe the pods for more information:
+
+                etcd
+                --advertise-client-urls=https://10.0.0.4:2379
+                --cert-file=/etc/kubernetes/pki/etcd/server.crt
+                --client-cert-auth=true
+                --data-dir=/var/lib/etcd
+                --experimental-initial-corrupt-check=true
+                --experimental-watch-progress-notify-interval=5s
+                --initial-advertise-peer-urls=https://10.0.0.4:2380
+                --initial-cluster=k8master=https://10.0.0.4:2380
+                --key-file=/etc/kubernetes/pki/etcd/server.key
+                --listen-client-urls=https://127.0.0.1:2379,https://10.0.0.4:2379
+                --listen-metrics-urls=http://127.0.0.1:2381
+                --listen-peer-urls=https://10.0.0.4:2380
+                --name=k8master
+                --peer-cert-file=/etc/kubernetes/pki/etcd/peer.crt
+                --peer-client-cert-auth=true
+                --peer-key-file=/etc/kubernetes/pki/etcd/peer.key
+                --peer-trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
+                --snapshot-count=10000
+                --trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
+
+
+                - Persistent Volumes
+
+
+24) Storage:
+        Kubernets uses docker drives and volume plugins to manage the volumes as storage.
+        Storage Driver: (used by container ir images to write the data)
+            AUFS(default for Ubuntu server), ZFS, BTRFS, Device Mapper (RHEL), Overlay, Overlay2(docker)
+        
+        Volumes Plugins: (used to create the persistent volumes)
+            Local(Default plugin), Azure File Storage, Convoy, Digital Ocean Block Storage, Floker, gce-docker, GlusterFS, NetApp, RexRay (AWS EBS), Portworx, VMware VSphere Storage
+
+        Like, CRI (Container Runtime), CNI (Container Network interface), we have CSI which is Container Storage interface. CSI is a global standard which allows any container orchestration tool like kubernetes to work with any storage vendor with a supported plugins.
+
+        Kubernetes, Cloud Foundary and Mesos are onboarded to CSI.
+
+        CSI has there defined RPCs(remote procedure calls), which make sure calls must be done by orchestrator tools and must be implemented by the storage driver.
+        RPC Rules: 
+            CreateVolume
+            DeleteVolume
+            ControllerPublishVolume
+
+       Volumes:
+        attached to pods, and data generated by pods is not stored into volumes.
+        we put the volumes in pod definition file, multiple ways to handle the volumes:
+        a) for local directory from node (recommended for single node cluster) where pod is running, we put this as hostPath which is volumes plugins as below:
+        at spec indentation, we put:
+        volumes:
+        - name: <voluem_name>
+          hostPath:
+            path: <path_to_local_dir>
+            type: Directory
+
+        at container indendation:
+        volumeMounts:
+        - mountPath: <dir_to_mount>
+          name: <volume_name>
+        ** it spportes others as well like AWS EBS, NFS, GlusterFS etc...
+
+       Persistent Volumes (PV):
+        Volume is being defined in pod definition file, for one or two pods its fine but what if we need to manage lot of pods then better to manage the volumes as persistent volumes which is a kind of managing the volumes centrally. PV is being created by administrator.
+        PV is large amount of storage and useres or pod can claim the required volume from that and mount as PVC (persistent volume claims)
+        creating a PV as definition file:
+        apiVersion: v1
+        kind: PersistentVolume
+        metadata:
+            name: <pv_name>
+        spec:
+            accessMode:                 #### this will define how the volumes will be mounted on target pod, we have ReadOnlyMany, ReadWriteOnce, ReadWriteMany
+                - ReadWriteOnce
+            capacity:
+                storage: <size_of_pv>   #### 10Gi
+            PersistentVolumeReclaimPolicy: <policy_name>   #### Retain/Delete/Recycle
+            hostpath:                   #### its a volume type    
+                path: <path_to_local_dir>
+                type: Directory
+
+        Persistent Volume Claims:
+            To make the storage from PV Pool inside the pod, its being created by users.
+            Kubernetes bind the PVC to PV based on reqeust. While binding, it checks for Sufficient capacity, Access modes, volumes modes, storage class and Selectors. It is one-to-one relationship between PV and PVC so remaining capacity in PV can't be used by other PVCs.
+            creating a PVC as definition file:
+            apiVersion: v1
+            kind: PersistentVolumeClaim
+            metadata:
+                name: <pvc_name>
+            spec:
+                accessMode:
+                    - ReadWriteOnce
+                resources:
+                    requestes:
+                        storage: <requested_size>
+
+            ** When you delete the PVC, PV will be deleted or not that depends on policy:
+                - PersistentVolumeReclaimPolicy: Retain (with this policy, PV won't be deleted until admin will delete it but it is not avialable for reuse by any other claim)
+                - PersistentVolumeReclaimPolicy: Delete (it will delete automatically after the PVC is deleted)
+                - PersistentVolumeReclaimPolicy: Recycle (data will be deleted from volumes before it making it to avialble to other claims)
+
+            ** putting in pod definition file:
+            at spec indentation, we put:
+            volumes:
+            - name: <volume_name>
+              PersistentVolumeClaim:
+                claimName: <pvc_name>
+                
+            at container indendation:
+            volumeMounts:
+            - mountPath: <dir_to_mount>
+              name: <volume_name>  
+
+
+        Storage Class:
+            when we want the PVC from external storage then every time we need to create the disk first and then claim it but it would be great if disks gets created automatically in external storage when we can claim it with PVC, there Storage Class helps us, which is called a dynamic provisioning. So in order to acheive that, we need to create a storage provisioner which can automatically provision the storage and then claimn it with PVC, no need to create a PV in this case, its going to be created automatically.
+
+            storage class definition file:
+            apiVersion: storage.k8s.io/v1
+            kind: StorageClass
+            metadata:
+                name: <sc_name>
+            provisioner: <provisioner_name>
+
+            and in PVC definition file:
+            add new property called:
+                storageClassName: <sc_name>
+
+            ** while defining the provisioner in sc.yaml file, we can pass the additonal parameter as well like disk type, replicaiton, backup. Each provisioner has their specific parameter. For more info, check the documents:  https://kubernetes.io/docs/concepts/storage/storage-classes/
+
+            https://kubernetes-csi.github.io/docs/drivers.html
 
 
 

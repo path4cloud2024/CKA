@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-pvc
+spec:
+  containers:
+  - name: logger
+    image: busybox
+    command: [ "/bin/sh", "-c" ]
+    args: [ "while true; do echo $(date) Writing log entry to PVC >> /mnt/logs/pvc-test.log; sleep 5; done" ]
+    volumeMounts:
+    - mountPath: /mnt/logs
+      name: pvc-storage
+  volumes:
+  - name: pvc-storage
+    persistentVolumeClaim:
+      claimName: local-pvc
+
+# Since no storageClassName, Kubernetes uses the “no storageClass” default behavior and binds automatically if capacity & access mode match.
