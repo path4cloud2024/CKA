@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: local-pod-node-affinity
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - k8node1
+  containers:
+  - name: logger
+    image: busybox
+    command: [ "/bin/sh", "-c" ]
+    args: [ "while true; do echo $(date) Writing log entry >> /logs/test.log; sleep 5; done" ]
+    volumeMounts:
+    - name: local-storage
+      mountPath: /logs
+  volumes:
+  - name: local-storage
+    persistentVolumeClaim:
+      claimName: local-pvc

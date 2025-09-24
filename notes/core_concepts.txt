@@ -527,7 +527,7 @@ Service listen to a port on the Node and forward requests on that port to a port
         under container in spec section, we can put the new property called "envFrom" and introduce our secret:
         (envFrom is a list and can accept many secret in smae file)
 
-        envFrom:
+        envFrom: 
             - secretRef:
                 name: <secret_name>
 
@@ -784,6 +784,8 @@ Service listen to a port on the Node and forward requests on that port to a port
                 - PersistentVolumeReclaimPolicy: Retain (with this policy, PV won't be deleted until admin will delete it but it is not avialable for reuse by any other claim)
                 - PersistentVolumeReclaimPolicy: Delete (it will delete automatically after the PVC is deleted)
                 - PersistentVolumeReclaimPolicy: Recycle (data will be deleted from volumes before it making it to avialble to other claims)
+
+                (for more info refer, bonus_info_on_storage.txt file under cheatsheet dir)
 
             ** putting in pod definition file:
             at spec indentation, we put:

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: local-pod-node-selector
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: k8node1 # must match your PV nodeAffinity
+  containers:
+  - name: logger
+    image: busybox
+    command: [ "/bin/sh", "-c" ]
+    args: [ "while true; do echo $(date) Writing log entry >> /logs/test.log; sleep 5; done" ]
+    volumeMounts:
+    - name: local-storage
+      mountPath: /logs
+  volumes:
+  - name: local-storage
+    persistentVolumeClaim:
+      claimName: local-pvc-static-sc

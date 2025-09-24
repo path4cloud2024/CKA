@@ -1,0 +1,123 @@
+--> While defining the storage class yaml file, we have below properties:
+
+    a) volumeBindingMode in StorageClass
+            This field controls when and how a PersistentVolume (PV) is bound to a PersistentVolumeClaim (PVC).
+
+            There are two modes:
+            - Immediate (default if not specified)
+                As soon as you create a PVC, Kubernetes immediately tries to bind it to a PV (or provision a new PV if dynamic provisioning is used). Binding happens without waiting for any Pod to be scheduled.
+
+                Problem: If the PV is tied to a specific node/zone (like AzureDisk, AWS EBS, local PV), Kubernetes may create the PV in a zone that doesn’t match where your Pod is scheduled → Pod scheduling may fail.
+
+                Use case:
+                    - Storage that is network-accessible from all nodes (like NFS, Ceph, GlusterFS).
+                    - Because the storage isn’t tied to a specific node/zone, you don’t need to wait.
+
+            - WaitForFirstConsumer
+                The PVC will stay in Pending state until a Pod that uses the PVC is scheduled. Once Kubernetes knows where the Pod will run (which node/zone), it will provision/bind the PV close to the Pod. Ensures the PV is created in the right location (correct node or availability zone).
+
+                Use case:
+                    - Zonal/Node-specific storage like:
+                    - Azure Disk
+                    - AWS EBS
+                    - GCP Persistent Disk
+                    - Local PV (kubernetes.io/no-provisioner)
+
+                This avoids mismatch between Pod scheduling and storage location.
+
+        Example Flow (rancher.io/local-path with WaitForFirstConsumer)
+            - You create PVC → stays in Pending.
+            - You create a Pod using the PVC.
+            - Kubernetes scheduler decides which node the Pod should run on.
+
+        --> If external provisioner (eg disk.csi.azure.com) creates a disk in that zone where node is running and binds PVC ↔ PV and Pod starts successfully with disk attached.
+
+        Summary:
+        Mode	                    When PV is created/bound	                    Best for
+        -----------------------------------------------------------------------------------------------------------------------------
+        Immediate	                At PVC creation	                    Shared / networked storage (NFS, Ceph)
+        WaitForFirstConsumer	    Only after Pod is scheduled	        Zonal / node-specific storage (AzureDisk, AWS EBS, local PV)
+
+    b) ReclaimPolicy (allowed in Storage Class and PV but not in PVC)
+            This tells Kubernetes what to do with the underlying storage when the PersistentVolumeClaim (PVC) is deleted.
+
+            There are 3 main policies:
+            - Delete
+                When the PVC is deleted → Kubernetes will delete the underlying storage asset.
+                Example: If you’re using Azure Disk, AWS EBS, or GCP PD, the actual cloud disk is deleted.
+                
+                Dangerous if you want to keep the data.
+
+                Use case:
+                    - Temporary/test environments where data persistence is not important.
+                    - CI/CD workloads that need clean storage on each run.
+
+            - Retain
+                When the PVC is deleted → Kubernetes keeps the underlying storage, but the PV becomes “Released”, not able to use anymore.
+                Data is still there, but PV is not automatically reused until an admin manually cleans it and rebinds.
+                You need to manually delete or recycle the disk.
+
+                Use case:
+                    - Production environments where you don’t want to risk losing data automatically.
+                    - Databases or stateful apps where manual intervention is required before reusing a disk.
+            
+            - Recycle (Deprecated in newer Kubernetes)
+                When PVC is deleted → Kubernetes runs a basic scrub (like rm -rf /data/*) and makes PV available for reuse.
+                Deprecated because it was unsafe and too simple (might leave sensitive data).
+
+                Use case:
+                    - Not recommended anymore.
+        
+        Example Flow (Azure Disk with Delete vs Retain)
+            - You create a PVC → PV & Azure Disk created.
+            - You delete the PVC:
+                - Delete policy → PV deleted + Azure Disk deleted from your subscription.
+                - Retain policy → PV released (not available for new claims), Azure Disk still exists in your subscription.
+
+        Summary:
+        Policy	        What happens when PVC is deleted?	                                 Best for
+        -----------------------------------------------------------------------------------------------------------
+        Delete	    PV & underlying storage asset are deleted	                Ephemeral workloads, dev/test
+        Retain	    PV released but storage kept (manual cleanup required)	    Production, stateful apps
+        Recycle	    PV scrubbed & reused (deprecated)	                        Old clusters only, not recommended
+
+        Rule of Thumb:
+            - Dev/Test → Delete
+            - Prod/Stateful → Retain
+
+    c) volumeBindingMode 
+        It define how a Pod can access a PersistentVolume (PV). They control the read/write capabilities and whether multiple Pods can use the volume simultaneously.
+        They are defined in:
+            - PersistentVolume (PV) → the storage’s capabilities
+            - PersistentVolumeClaim (PVC) → the Pod’s requested access mode
+
+        Access Mode	        Abbreviation	                What it means	                                                Use Case
+        -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+        ReadWriteOnce	    RWO	            PV can be mounted as read/write by a single node	            Most block storage (Azure Disk, AWS EBS, GCP PD, Local PV)
+        ReadOnlyMany	    ROX	            PV can be mounted as read-only by many nodes simultaneously	    Shared read-only data, config files
+        ReadWriteMany	    RWX	            PV can be mounted as read/write by many nodes simultaneously	NFS, GlusterFS, Ceph, networked storage
+        ReadWriteOncePod	RWO-Pod     	PV can be mounted as read/write by a single Pod             	Specific Pod-only use case (stronger enforcement than RWO)
+                          
+        ** RWO-Pod (new in 1.22+)
+
+        Key Points
+            - PVC access mode must match or be compatible with PV’s access mode
+                Example: PV = RWO → PVC can only request RWO
+                         PV = RWX → PVC can request RWX or ROX
+
+            - RWO is the most common
+                Block storage (Azure Disk, AWS EBS) can only be attached to one node at a time
+                Pod can write, only one Pod/node at a time
+
+            - RWX requires networked/shared storage
+                NFS, CephFS, GlusterFS, etc.
+                Multiple Pods on multiple nodes can write simultaneously
+
+            - ROX is read-only for multiple consumers
+                Useful for distributing config files, shared datasets
+
+        Rule of Thumb:
+        Storage Type	                    Recommended Access Mode
+        Local Disk / Cloud Block Storage	ReadWriteOnce
+        NFS / GlusterFS / CephFS	        ReadWriteMany
+        Shared read-only data	            ReadOnlyMany

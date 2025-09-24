@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv-static-sc
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-storage-static-sc
+  local:
+    path: /mnt/disks/vol1 # <-- make sure this exists on your VM
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - k8node1 # <-- Replace with your actual node name (kubectl get nodes -o wide)
