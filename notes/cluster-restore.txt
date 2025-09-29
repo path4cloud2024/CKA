@@ -1,0 +1,188 @@
+#################################
+
+Restoring the Cluster from ETCD
+
+#################################
+
+- check the etcd pod running in kube-system workspace:
+# root@k8master:~/CKA# kubectl get pod -n kube-system | grep -i etcd
+  etcd-k8master                      1/1     Running   1 (33m ago)   45m
+
+- we can describe the etcd pod to get the more details on like what all other configuration its using and from where the values are coming for those parameter:
+# root@k8master:~/CKA# kubectl describe pod etcd-k8master -n kube-system
+
+(here, especailly the cert file, ca bundle, endpoint and key which is required if you are running a etcd as stadnalone service or another server)
+ Command:
+   etcd
+   --advertise-client-urls=https://10.0.0.4:2379
+   --cert-file=/etc/kubernetes/pki/etcd/server.crt                         <-- cert file
+   --client-cert-auth=true
+   --data-dir=/var/lib/etcd                                                <-- current etcd data
+   --experimental-initial-corrupt-check=true
+   --experimental-watch-progress-notify-interval=5s
+   --initial-advertise-peer-urls=https://10.0.0.4:2380
+   --initial-cluster=k8master=https://10.0.0.4:2380
+   --key-file=/etc/kubernetes/pki/etcd/server.key
+   --listen-client-urls=https://127.0.0.1:2379,https://10.0.0.4:2379       <-- endpoint
+   --listen-metrics-urls=http://127.0.0.1:2381
+   --listen-peer-urls=https://10.0.0.4:2380
+   --name=k8master
+   --peer-cert-file=/etc/kubernetes/pki/etcd/peer.crt
+   --peer-client-cert-auth=true
+   --peer-key-file=/etc/kubernetes/pki/etcd/peer.key
+   --peer-trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
+   --snapshot-count=10000
+   --trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt                        <-- ca bundel
+
+- check the current version of etcd
+# root@k8master:~/CKA# kubectl exec -it etcd-k8master -n kube-system -- etcdctl version
+  etcdctl version: 3.5.15
+  API version: 3.5
+
+(just to show you, how you can interact to etcd cluster, buut while taking the backup, we use etcd as standalon binary from master node, not which is installed inside the pod.
+
+#####################################
+
+    TAKE THE BACKUP OF ETCD
+
+#####################################
+step1) lets verify the data:
+    # root@k8master:~/CKA# ls /var/lib/etcd/    (original data directory which is currently mounted to etcd pod)
+      member
+
+step2) Download and install the etcd as per etcd version in pod (as checked above)
+    - set the same API version which we get from version while checking inside the pod (or you can export it for persistent in bashrc or profile)
+    # ETCD_VER=v3.5.15 
+
+    - Download the binary tar file
+    # wget https://github.com/etcd-io/etcd/releases/download/${ETCD_VER}/etcd-${ETCD_VER}-linux-amd64.tar.gz
+
+    - Extract and Install it (move to local binary to make it avialable system wide)
+    # tar xvf etcd-${ETCD_VER}-linux-amd64.tar.gz
+    # cd etcd-v3.5.15-linux-amd64/
+    # cp etcdctl /usr/local/bin/    (binary to interact with etcd server and take the backup)
+    # cp etcdutl /usr/local/bin/    (binary to restore the etcd backup)
+    # etcdctl version (verify its working)
+    
+
+step2) take the backup/snapshot
+    - now we need to interact with pod from outside using etcdctl binary so we need to specicy the cert, ca, key and endpoint. In order to pass the information to binary like where our etcd server is running.
+    # root@k8master:~# etcdctl snapshot save \
+      > --cert=/etc/kubernetes/pki/etcd/server.crt \
+      > --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+      > --key=/etc/kubernetes/pki/etcd/server.key \
+      > --endpoints=https://127.0.0.1:2379 \
+      > /mnt/etcd-backup/before-patch.db
+
+      Snapshot saved at /mnt/etcd-backup/before-patch.db
+
+step3) verify the saved snapshot at specify location
+    # root@k8master:/mnt# ls /mnt/etcd-backup/
+      before-patch.db
+
+
+####################################################################################
+
+Simulate something happens and we lost all services, pod, deployment, replicaset
+
+#####################################################################################
+
+- BEFORE THE DISASTER, ALL ARE GOOD AND WORKING FINE
+    root@k8master:/mnt# kubectl get all
+    NAME                               READY   STATUS    RESTARTS      AGE
+    pod/rolling-dep-7df7b9475d-7dxcq   1/1     Running   1 (77m ago)   102m
+    pod/rolling-dep-7df7b9475d-pbhnp   1/1     Running   1 (77m ago)   102m
+    pod/rolling-dep-7df7b9475d-vz9dg   1/1     Running   1 (77m ago)   102m
+
+    NAME                  TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+    service/kubernetes    ClusterIP   10.96.0.1       <none>        443/TCP          118m
+    service/rolling-dep   NodePort    10.109.164.44   <none>        8080:31622/TCP   102m
+
+    NAME                          READY   UP-TO-DATE   AVAILABLE   AGE
+    deployment.apps/rolling-dep   3/3     3            3           102m
+
+    NAME                                     DESIRED   CURRENT   READY   AGE
+    replicaset.apps/rolling-dep-7df7b9475d   3         3         3       102m
+
+- test the applicaiton from cmd or browser:
+    # while true; do curl -s 130.131.242.106:31622; done  (working well)
+      Hello, I am running on host: rolling-dep-7df7b9475d-7dxcq, running with Applcaiton Version - 1 (first)
+      Hello, I am running on host: rolling-dep-7df7b9475d-pbhnp, running with Applcaiton Version - 1 (first)
+      Hello, I am running on host: rolling-dep-7df7b9475d-vz9dg, running with Applcaiton Version - 1 (first)
+
+- Manually delete the deployment and services
+
+- AFTER THE DISASTER, NOTHING IS WORKING FINE
+    # root@k8master:/mnt# kubectl get all
+      NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+      service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   124m
+    
+- no response from applicaiton:
+    # while true; do curl -s 130.131.242.106:31622; done
+
+
+#######################################
+
+    Restore it from etcd backup
+
+#######################################
+- lets create a new data directory for this demo but in production, generaly we restore it at same location
+    # mkdir /var/lib/etcd-restored
+
+- restore it at newly created direcotry:
+    # root@k8master:~# etcdutl snapshot restore --data-dir=/var/lib/etcd-restored /mnt/etcd-backup/before-patch.db
+
+- lets verify the restored data
+    # root@k8master:~# ls /var/lib/etcd-restored/
+      member
+
+- now, we need to update the etcd pod mounted path so that it can take the restored data and we got our applicaiton back
+    * go to etcd manifest file and change the volume path so that mounted directory referes to new restored data:
+    # cd /etc/kubernetes/manifests/
+
+    * check the current timestamp on etcd pod:
+    # root@k8master:/etc/kubernetes/manifests# kubectl get pods -n kube-system | grep etcd
+      etcd-k8master                      1/1     Running   1 (92m ago)    103m
+
+    # rename the etcd.yaml to etcd.yaml.bkp
+        (it will stop the pod, if not then get the id from below command manually stop and remove the container)
+        # crictl ps
+        # crictl stop <etcd_container_id>
+        # crictl remove <etcd_container_id>
+
+    # vi /var/lib/etcd-restored/etcd.yaml.bkp  
+        (and change the hostpath to new direcotry path where we restore the data)
+        - hostPath:
+            path: /var/lib/etcd-restored/      <--- change here
+            type: DirectoryOrCreate
+          name: etcd-data
+
+
+    * after saving the file, rename etcd.yaml.bkp to etcd.yaml and restart the kubelet service
+
+    * it will restart or recreate the pod from restored data and everything is back now.
+
+    * and now if you see the time stamp for etcd pod, its just recreated
+    # root@k8master:/etc/kubernetes/manifests# kubectl get pod -n kube-system | grep -i etcd
+      etcd-k8master                      1/1     Running   0               27s
+
+
+    * and we have our applicaiton are back, up and running fine
+    # root@k8master:/etc/kubernetes/manifests# kubectl get all
+      NAME                               READY   STATUS    RESTARTS   AGE
+      pod/rolling-dep-7df7b9475d-7dxcq   1/1     Running   0          162m
+      pod/rolling-dep-7df7b9475d-pbhnp   1/1     Running   0          162m
+      pod/rolling-dep-7df7b9475d-vz9dg   1/1     Running   0          162m
+
+      NAME                  TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+      service/kubernetes    ClusterIP   10.96.0.1       <none>        443/TCP          179m
+      service/rolling-dep   NodePort    10.109.164.44   <none>        8080:31622/TCP   162m
+
+      NAME                          READY   UP-TO-DATE   AVAILABLE   AGE  
+      deployment.apps/rolling-dep   3/3     3            3           162m
+
+      NAME                                     DESIRED   CURRENT   READY   AGE
+      replicaset.apps/rolling-dep-7df7b9475d   3         3         3       162m
+
+
+

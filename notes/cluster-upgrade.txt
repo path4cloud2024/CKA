@@ -1,7 +1,7 @@
 --> to check the upgrade plan run
 # kubeadm upgrade plan
 
-(if yhou are running more than 3 recent version from latest version then it will not show all stabel release beacuse it can support upto 3 backwards releases)
+(if you are running more than 3 recent version from latest version then it will not show all stable release beacuse it can support upto 3 backwards releases)
 
 (so you need to specify the version number, like below)
 
@@ -64,8 +64,6 @@ kubeadm:
  (which might show the lastest but if you need to install the next version then check the list and specify the version as below)
 
  #  apt-get upgrade kubeadm=1.30.14-1.1
- OR
- # apt-get install kubeadm=1.30.14-1.1
 
  and might need or a good idea to hold the version of kubeadm to currently upgraded version so that, it will not get upgraded by mistake since it suppoort upto 3 recent version. So , its a good idea until we have cluster done, put the hold to version as below:
 
@@ -82,16 +80,86 @@ kubeadm:
 
 #####################################
 #####################################
-# kubeadm upgrade apply [<version_number>]
 
---> post upgrade of cluster, you might not see the latest version with # kubectl get nodes, beacuse it shows the kubectl information so we need to upgrade the kubectl as well as we did for kubeadm above.
+step1) check the kubeadm, kubectl and kubelet version (kubeadm version must be ahead of one version from current version)
+    - check the current version
+    # root@k8master:~/CKA# kubectl get nodes
+      NAME       STATUS   ROLES           AGE   VERSION
+      k8master   Ready    control-plane   38m   v1.30.14
+      k8node1    Ready    <none>          23m   v1.30.14
 
---> drain the nodes since we have pods running on this
-# kubectl drain <node_name>
+    # root@k8master:~/CKA/labs# kubeadm version
+      kubeadm version: &version.Info{Major:"1", Minor:"30", GitVersion:"v1.30.14", GitCommit:"9e18483918821121abdf9aa82bc14d66df5d68cd", GitTreeState:"clean", BuildDate:"2025-06-17T18:34:53Z", GoVersion:"go1.23.10", Compiler:"gc", Platform:"linux/amd64"}
+    
+    # root@k8master:~/CKA/labs# kubelet --version
+      Kubernetes v1.30.14 
 
---> once updated then uncordon this again
-# kubectl uncordon <node_name>
+    # root@k8master:~/CKA/labs# kubectl version
+      Client Version: v1.30.14
+      Kustomize Version: v5.7.1
+      Server Version: v1.30.14
 
---> on WORKER NODES, upgrade the kubeadm configuration
-# kubeadm upgrade nodes
+    (here we can see kubeadm is at same version where server is running, so we need to update the kubeadm first)
 
+step2) upgrade the kubeadm
+    - update the source/repo list
+    # echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    # apt-get update
+
+    - upgrade the kubeadm now
+    # apt-get upgrade kubeadm=1.31.13-1.1
+
+    - now, run the plan and apply it:
+    # kubeadm upgrade plan v1.31.0      (will show the next target version of each componants)
+    # kubeadm upgrade apply v1.31.0     (will uprgade the cluster to target version)
+
+    [upgrade/successful] SUCCESS! Your cluster was upgraded to "v1.31.13". Enjoy!
+
+    [upgrade/kubelet] Now that your control plane is upgraded, please proceed with upgrading your kubelets if you haven't already done so.
+
+step3) check the current version:
+    # root@k8master:~/CKA# kubectl get nodes
+      NAME       STATUS   ROLES           AGE   VERSION
+      k8master   Ready    control-plane   38m   v1.30.14
+      k8node1    Ready    <none>          23m   v1.30.14
+
+    (still showing the old version, we need to upgrade the kubelet to load the new server configuration)
+
+    # apt-get upgrade -y kubelet=1.31.13-1.1  (make sure, you will put the same version as we did for kubeadm)
+
+    # systemctl restart kubelet
+
+    # root@k8master:~/CKA# kubectl get nodes            (now after restart of kubelet on master node, we can see latest version for master but not worker node)
+      NAME       STATUS   ROLES           AGE   VERSION
+      k8master   Ready    control-plane   39m   v1.31.13
+      k8node1    Ready    <none>          23m   v1.30.14
+
+step4) now, we need to update the kubeadm and kubelet on worker node
+    - If we are running multiple worker nodes and any pods are running on worker node which we are upgrading then, it would be nice to cordon the node
+    - OR if running a test workload or ok to get the downtime for those app (since node might need reboot if you are upgrading OS), then you can do without cordon also.
+
+    - OPTIONAL Steps (to be performed on master node)
+    # kubectl drain <node_name> (in this case, workload will be evicted to another available node if meets all requirements)
+        OR
+    # kubectl cordon <node_name> (in this case, workload needs to be moved/evicted manually)
+
+    - update the source/repo list
+    # echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    # apt-get update
+
+    # apt-get upgrade kubeadm=1.31.13-1.1 (make sure, you will put the same version as we did for kubeadm on master node)
+    # apt-get upgrade kubelet=1.31.13-1.1 (make sure, you will put the same version as we did for kubeadm on master node)
+    
+    -now upgrade the kubelet configuration:
+    # kubeadm upgrade node  
+
+step5) verify the version now on all nodes, run on master node
+    # root@k8master:~/CKA# kubectl get nodes
+      NAME       STATUS   ROLES           AGE   VERSION
+      k8master   Ready    control-plane   44m   v1.31.13
+      k8node1    Ready    <none>          29m   v1.31.13
+
+step6) IF NODES WAS CORDENED OR DRAINED
+    # kubectl uncordon <node_name>
+
+IF you have other worker nodes, then repeat the steps from step4 to step6.

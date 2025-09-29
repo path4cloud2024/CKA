@@ -626,7 +626,7 @@ Service listen to a port on the Node and forward requests on that port to a port
             ####################################
             ####################################
 
-                CLUSTER Backup and Restore
+                CLUSTER Backup and Restore (check cluster-restore.txt under nodes direcotry in this repository)
 
             #####################################
             #####################################
@@ -817,6 +817,117 @@ Service listen to a port on the Node and forward requests on that port to a port
             ** while defining the provisioner in sc.yaml file, we can pass the additonal parameter as well like disk type, replicaiton, backup. Each provisioner has their specific parameter. For more info, check the documents:  https://kubernetes.io/docs/concepts/storage/storage-classes/
 
             https://kubernetes-csi.github.io/docs/drivers.html
+
+
+25) Kubernetes security
+        security Permitive:
+            * secure the Hosts with only key based access
+            * Secure Kube-apiserver access for administrator, service accounts or developers.
+                - Authentication
+                    token based
+                    certificate based
+                    LDAP
+                - Authorization
+                    RBAC
+                    ABAC (Attribite based)
+                    Node Authorization
+                    Webhook Mode
+            * All kubernetes componant communicates with each other on TLS based communication
+            * By default, Pods can access all other pods, that can be secured using network policies.
+
+        ** Naming convention:
+            usually public key are names as .crt or .pem
+            usually private key are names as .key or -key.pem (either as extention .key or in name itself -key)
+
+     -->TLS based communication between all componant:
+            We have many certifactes availability at /etc/kuberenetes/pki which are generated and singed by kubernetes at the time of installing.
+
+            root@k8master:~# ls /etc/kubernetes/pki/
+            apiserver-etcd-client.crt  apiserver-kubelet-client.crt  apiserver.crt  ca.crt  etcd                front-proxy-ca.key      front-proxy-client.key  sa.pub
+            apiserver-etcd-client.key  apiserver-kubelet-client.key  apiserver.key  ca.key  front-proxy-ca.crt  front-proxy-client.crt  sa.key
+
+            root@k8master:~# openssl x509 -in /etc/kubernetes/pki/ca.crt -noout -text
+            Certificate:
+                Data:
+                    Version: 3 (0x2)
+                    Serial Number: 6896756667732836252 (0x5fb633a61285bf9c)
+                    Signature Algorithm: sha256WithRSAEncryption
+                    Issuer: CN = kubernetes
+                    Validity
+                        Not Before: Sep 24 20:18:04 2025 GMT
+                        Not After : Sep 22 20:23:04 2035 GMT
+
+     -->We can generate our own TLS certifactes for kubernetes (we can use easyrsa or openssl to generate one)
+            - generate keys         # openssl genrsa -out ca.key 2048
+            - generate csr keys     # openssl req -new -key ca.key -subj "/CN=Path4Cloud-Cluster-CA" -out ca.csr
+            - sign ceritifcate      # openssl x509 -req -in ca.csr -signkey ca.key -out ca.crt  
+
+        Now we can generate other client certificates using this private key and root certifcate (ca.crt)
+
+            For Admin user:
+            - generate keys         # openssl genrsa -out admin.key 2048 
+            - generate csr keys     # openssl req -new -key admin.key -subj "/CN=Cluster-Admin/O=system:masters" -out admin.csr
+            - sign ceritifcate      # openssl x509 -req -in admin.csr -CAcert ca.crt -CAkey ca.key -out admin.crt    <--- now we sing all csr using our ca key and cert.
+
+            For Kube Api Server, we must put the all alternative names becuase, any componant may refer to any names:
+            - generate keys         # openssl genrsa -out kube-apiserver.key 2048 
+            - generate csr keys     # openssl req -new -key kube-apiserver.key -subj "/CN=kube-apiserver" -out kube-apiserver.csr -config openssl.cnf
+            - sign ceritifcate      # openssl x509 -req -in kube-apiserver.csr -CAcert ca.crt -CAkey ca.key -out kube-apiserver.crt -extentions req_ext -extfile openssl.cnf -days 365    
+            (here since we need to specify many alternative names so that we can put all in openssl.cnf file and pass other information)
+            # cat openssl.cnf
+            [ req ]
+            default_bits       = 2048
+            prompt             = no
+            default_md         = sha256
+            req_extensions     = req_ext
+            distinguished_name = dn
+
+            [ dn ]
+            C  = IN
+            ST = HR
+            L  = Gurgaon
+            O  = Path4Cloud
+            CN = kube-apiserver
+
+            [ req_ext ]
+            subjectAltName = @alt_names
+
+            [ alt_names ]
+            DNS.1   = kube-apiserver
+            DNS.2   = kubernetes
+            DNS.3   = kubernetes.default
+            DNS.4   = kubernetes.default.svc
+            DNS.5   = kubernetes.default.svc.cluster.local
+            IP.1    = 10.0.0.4
+            IP.2    = 127.0.0.1
+
+            We can check this later on:
+            root@k8master:/etc/kubernetes/pki# openssl x509 -in apiserver.crt -text -noout | grep -i -A1 "Alternative Name"
+            X509v3 Subject Alternative Name:
+                DNS:k8master, DNS:kubernetes, DNS:kubernetes.default, DNS:kubernetes.default.svc, DNS:kubernetes.default.svc.cluster.local, IP Address:10.96.0.1, IP Address:10.0.0.4
+
+        and same way we can generate these certificates for other componand as well.
+        We must generate some SOPs or sheet where we can maintain the all certificates details like, who issue, expiry data or CN name to check the health on regular basis.
+        
+        To access the api server:
+            - when we run kubectl command, it uses the credentials from .kube/config file (generally under home directory of same user)
+              That kubeconfig file contains:
+                > Cluster API server address
+                > CA certificate (ca.crt) to validate the API server
+                > User credentials (usually a client certificate + key, e.g. client.crt / client.key, or a token)
+            (/etc/kubernetes/admin.conf → contains certs for the kubernetes-admin user)
+
+            - to access via curl it point to /etc/kubernetes/pki/apiserver-kubelet-*
+                root@k8master:/etc/kubernetes/pki# curl https://10.0.0.4:6443/api/v1/namespaces/default/pods   --cert /etc/kubernetes/pki/apiserver-kubelet-client.crt   --key /etc/kubernetes/pki/apiserver-kubelet-client.key   --cacert /etc/kubernetes/pki/ca.crt
+                {
+                    "kind": "PodList",
+                    "apiVersion": "v1",
+                    "metadata": {
+                        "resourceVersion": "205945"
+                    },
+                    "items": [
+
+        
 
 
 
