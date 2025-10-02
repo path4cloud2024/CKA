@@ -1,0 +1,17 @@
+# def-pod-2 are pingable from  def-pod-1 in default namaspace not by any other pod from any namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-def-pod-1-to-def-pod-2
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: def-pod-2
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: def-pod-1

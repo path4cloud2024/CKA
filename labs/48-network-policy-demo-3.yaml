@@ -1,0 +1,17 @@
+# allow all incoming to def-pod-3 in default namespace from anywhere but def-pod-3 can't reach anywhere
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-def-pod-3-to-all
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: def-pod-3
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - {} # allow all inbound traific from any namespace/pod
+  egress:
+  - to: [] # deny all outbound traffic
