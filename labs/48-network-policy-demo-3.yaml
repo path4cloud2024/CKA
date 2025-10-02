@@ -13,5 +13,4 @@ spec:
   - Egress
   ingress:
   - {} # allow all inbound traific from any namespace/pod
-  egress:
-  - {} # deny all outbound traffic
+  egress: [] # deny all outbound traffic
