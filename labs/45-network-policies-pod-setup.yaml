@@ -16,6 +16,8 @@ kind: Pod
 metadata:
   name: dev-pod
   namespace: dev
+  labels:
+    app: dev-pod
 spec:
   containers:
   - name: busybox
@@ -27,6 +29,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: def-pod-1
+  labels:
+    app: def-pod-1
 spec:
   containers:
   - name: busybox
@@ -38,6 +42,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: def-pod-2
+  labels:
+    app: def-pod-2
 spec:
   containers:
   - name: busybox
@@ -49,6 +55,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: def-pod-3
+  labels:
+    app: def-pod-3
 spec:
   containers:
   - name: busybox
@@ -60,6 +68,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: def-pod-4
+  labels:
+    app: def-pod-4
 spec:
   containers:
   - name: curl
@@ -71,6 +81,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: def-nginx
+  labels:
+    app: def-nginx
 spec:
   containers:
   - name: nginx
