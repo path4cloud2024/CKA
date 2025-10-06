@@ -1,0 +1,34 @@
+# --> If default certifacte is not having the Public IP, then we can create below file and regenerate the cert:
+# /etc/kubernetes/kubeadm-config.yaml
+# apiVersion: kubeadm.k8s.io/v1beta3
+# kind: ClusterConfiguration
+# kubernetesVersion: v1.30.14   # <-- put your cluster version here
+# controlPlaneEndpoint: "10.0.0.4:6443"   # private IP + port
+# apiServer:
+#  certSANs:
+#    - "10.0.0.4"            # private IP
+#    - "172.*.*.*"     # public IP
+#    - "k8master"            # hostname (if resolvable)
+#    - "k8master.mydomain.com" # optional DNS
+#
+# --> and then run the below command to take the backup of current cert and regenerate a new:
+# mv /etc/kubernetes/pki/apiserver.crt /etc/kubernetes/pki/apiserver.crt.backup
+# mv /etc/kubernetes/pki/apiserver.key /etc/kubernetes/pki/apiserver.key.backup
+
+# kubeadm init phase certs apiserver --config=/etc/kubernetes/kubeadm-config.yaml
+
+# --> restart the kubelet service
+# systemctl restart kubelet
+
+# --> verify the cert SANs
+# openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text -noout | grep -A1 "Subject Alternative Name"
+# --> above is command, below is output:
+#            X509v3 Subject Alternative Name:
+#                DNS:k8master, DNS:k8master.mydomain.com, DNS:kubernetes, DNS:kubernetes.default, DNS:kubernetes.default.svc, 
+#                DNS:kubernetes.default.svc.cluster.local, IP Address:10.96.0.1, IP Address:10.0.0.4, IP Address:172.212.176.210
+
+# --> You should now see both your private IP and public IP listed.
+
+-----BEGIN CERTIFICATE-----
+< PUT YOUR CERTIFICATE FROM /etc/kuberenetes/pki/ca.crt HERE>
+-----END CERTIFICATE-----

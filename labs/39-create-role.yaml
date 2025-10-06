@@ -1,0 +1,10 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: app-team
+rules:
+- apiGroups: [ "" ]
+  resources: [ "pods" ]
+  verbs: [ "get", "list", "create" ]
+
+# kubectl create role <role_name> --verb=<allowed_actions> --resource=<allowed_resource>

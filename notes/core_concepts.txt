@@ -1236,7 +1236,7 @@ Service listen to a port on the Node and forward requests on that port to a port
             or to a curl command as Bearer token:
             # curl https://10.0.0.4:6443/api --header "Authorization: Bearer eyJhbGciOiJSUzI......."
 
-            (give you a SSL Certificate error, so need to create a kube-config file for this user and pass the token)
+            (if curl gives you a SSL Certificate error, so need to create a kube-config file for this user and pass the token)
 
 
             apiVersion: v1
@@ -1321,7 +1321,7 @@ Service listen to a port on the Node and forward requests on that port to a port
             to check the current, permitted, and effective capabilities
             # capsh --print
 
-    --> Network Policies:
+27) Network Policies:
             A NetworkPolicy in Kubernetes controls pod-to-pod traffic (and pod-to-external traffic) at the network layer (L3/L4).
             By default, all pods can talk to all other pods. NetworkPolicies allow you to restrict traffic.
 

@@ -1,8 +1,2 @@
-notes/core_concepts.txt
 cheatsheets/bonus_info_on_how_TLS_works.txt
 cheatsheets/bonus_info_on_api.txt
-labs/39-create-role.yaml
-labs/40-create-role-binding.yaml
-labs/41-create-cluster-role.yaml
-labs/42-create-cluster-role-binding.yaml
-labs/sam-csr.yaml

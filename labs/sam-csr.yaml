@@ -1,0 +1,100 @@
+# create a dedicated user to test this, set the password and home directory, switch to that user
+# openssl genrsa -out sam.key 2048
+# openssl req -new -key sam.key -subj "/CN=sam/O=readers" -out sam.csr
+# here /O=readers is a cluster role which is created for sam to list all the pods cluster wide and binded in certificates
+
+# cat sam.csr | base64 | tr -d '\n' > sam.csr.base64
+
+# vi sam-cluster-reader-role.yaml
+#apiVersion: rbac.authorization.k8s.io/v1
+#kind: ClusterRole
+#metadata:
+#  name: reader
+#rules:
+#- apiGroups: [""]
+#  resources: ["pods", "nodes"]
+#  verbs: ["get", "list", "watch"]
+
+####
+# now, lets bind this role OR use this command "kubectl create clusterrolebinding sam-admin   --clusterrole=cluster-admin   --user=sam"
+
+#apiVersion: rbac.authorization.k8s.io/v1
+#kind: ClusterRoleBinding
+#metadata:
+#  name: reader-binding
+#subjects:
+#- kind: Group
+#  name: readers       # <-- must match O field in CSR
+#  apiGroup: rbac.authorization.k8s.io
+#roleRef:
+#  kind: ClusterRole
+#  name: reader
+#  apiGroup: rbac.authorization.k8s.io
+
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: sam_csr
+spec:
+  groups:
+  - system:authenticated
+  usages:
+  - client auth
+  signerName: kubernetes.io/kube-apiserver-client
+  request: paste <BASE64_CSR_HERE> from sam.csr.base64
+
+# create the csr 
+# kubectl apply -f sam-csr.yaml
+# approve the csr
+# kubectl certificate approve sam_csr
+
+# grab the certificate under status: certifiate
+# kubectl get csr sam_csr -o yaml (its in base64 encoded format)
+
+# now we can create a .kube/config file under user home directory
+
+#cat /home/sam/.kube/config
+#apiVersion: v1
+#clusters:
+#- cluster:
+#    certificate-authority-data: ca.crt file in based64 format
+#    server: https://10.0.0.4:6443
+#  name: kubernetes
+#contexts:
+#- context:
+#    cluster: kubernetes
+#    user: sam
+#  name: sam@kubernetes
+#current-context: sam@kubernetes
+#kind: Config
+#preferences: {}
+#users:
+#- name: sam
+#  user:
+#    client-certificate-data: user signed cert in base64 format
+#    client-key-data: user key in base64 format
+
+
+
+#############################
+---
+
+
+# BY DEFAULT Kubernetes ships with a handful of special, reserved groups that start with system:.
+# These are not “real” objects you can create or delete — they’re hard-coded into Kubernetes for RBAC and internal components.
+
+#| Group                         | Meaning                                                                  |
+#| ----------------------------- | -------------------------------------------------------------------------|
+#| `system:authenticated`        | All authenticated users with valid cert for read permission              |
+#| `system:unauthenticated`      | Anonymous users for unauthenticated requests, usaully restriced/denied   |
+#| `system:masters`              | Full cluster-admin rights (bypassing normal RBAC), added automatically   |
+#|                               | when you bootstrap a cluster with kubeadm                                |
+#| `system:nodes`                | All kubelet nodes, Each node joins the cluster with a cert like          |
+#|                               | CN=system:node:<nodeName>, and belongs to this group.                    |
+#| `system:serviceaccounts`      | All service accounts                                                     |
+#| `system:serviceaccounts:<ns>` | Service accounts in namespace `<ns>`, like - system:serviceaccounts:dev  |
+#| `system:bootstrappers`        | Bootstrap tokens,used by kubelet bootstrap tokens.                       |
+#| `system:node-proxier`         | kube-proxy                                                               |
+#| `system:discovery`            | Used during TLS bootstrap                                                | 
+
+## --> If you want to make your custom user a cluster-admin, you put them in O=system:masters in their cert, or create a ClusterRoleBinding to cluster-admin.

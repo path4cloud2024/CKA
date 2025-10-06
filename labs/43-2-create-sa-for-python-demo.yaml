@@ -1,0 +1,88 @@
+# steps to follow with static token for python api call
+# creating a SA
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api-reader
+  namespace: default
+---
+# creating a secret to assign a token to SA
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-reader-token
+  namespace: default
+  annotations:
+    kubernetes.io/service-account.name: api-reader
+type: kubernetes.io/service-account-token
+---
+# creating a role to view the pod in defualt namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: view
+rules:
+- apiGroups: [ "" ]
+  resources: [ "pods" ]
+  verbs: [ "get", "list", "watch" ]
+---
+# Binding a view role with SA
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: api-reader-binding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: api-reader
+  namespace: default
+roleRef:
+  kind: Role
+  name: view
+  apiGroup: rbac.authorization.k8s.io
+---
+# steps to follow with dynamic token for python api call
+
+# kubectl create token api-reader -n default --duration=24h   --> default TTL is 1 hour, we can specify teh required with
+#                                                                 --duration flag, max can be set upto 8760h (1 year)
+# creating a token creator role for api-reader SA
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: token-creator
+  namespace: default
+rules:
+- apiGroups: [ "" ]
+  resources: [ "serviceaccounts/token" ]
+  verbs: [ "create" ]
+
+# Bind the same role with api-reader SA
+---
+# create a new role-binding file or put it in same role-binding file where we bind the view role.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: api-reader-token-binding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: api-reader
+  namespace: default
+roleRef:
+  kind: Role
+  name: token-creator
+  apiGroup: rbac.authorization.k8s.io
+---
+
+
+# we can verify whether a account can create the token or not with kubectl auth can-i command:
+# kubectl auth can-i create serviceaccounts/token -n default --as=system:serviceaccount:default:api-reader
+
+# --> if this says, NO that might be, the user who is running this command is not having an impersonate role, in that case.
+# --> we can create the token and using same token, we can try to authenicate and list the pods.
+# TOKEN=$(kubectl create token api-reader -n default --duration=10m --as=system:serviceaccount:default:api-reader)
+# curl --cacert /tmp/ca.crt -H "Authorization: Bearer $TOKEN" $APISERVER/api/v1/namespaces/default/pods
+# change the CA cert path if differ.
+
+# if you are good to list the pods, that mean, token creation permission is granted

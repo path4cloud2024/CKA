@@ -51,6 +51,7 @@ chown $(id -u):$(id -g) $HOME/.kube/config
 kubeadm init --pod-network-cidr=10.244.0.0/16
 
 kubectl apply -f https://reweave.azurewebsites.net/k8s/v1.29/net.yaml
+#kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.0/manifests/calico.yaml
 
 kubectl get pods -n kube-system
 
