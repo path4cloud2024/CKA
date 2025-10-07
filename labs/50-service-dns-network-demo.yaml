@@ -1,0 +1,70 @@
+# Creating a backend namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backend
+---
+# Creating a pod into backend namespace
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bk-pod
+  namespace: backend
+  labels:
+    app: bk-pod
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:latest
+    command: [ "sleep", "3600" ]
+---
+# creating a web-server pod in default namespace
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-pod
+  labels:
+    app: web-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx:stable
+    ports:
+    - containerPort: 80
+---
+# creating a service to expose the web-pod
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-pod-svc
+spec:
+  selector:
+    app: web-pod
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# creating a curl-test-pod to check the curl connectivity
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+  labels:
+    app: test-pod
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:latest
+    command: [ "sleep", "3600" ]
+
+### DEMO
+# lets try to curl the web pod service from same namespace
+# kubectl -it exec test -- curl web-pod-svc   --> should work with shortname since from same namespace
+
+# lets try to curl the web pod service from backend namespace
+# kubectl -it bk-pod -n backend -- curl web-pod-svc --> will not work since trying to other namespace with short name
+
+# now lets try to curl with FQDN or <service_name>.<namespace>, it should work now.
+# kubectl -it bk-pod -n backend -- curl web-pod-svc.default
+#   OR
+# kubectl -it bk-pod -n backend -- curl web-pod-svc.default.svc.cluster.local

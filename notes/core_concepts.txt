@@ -1179,7 +1179,7 @@ Service listen to a port on the Node and forward requests on that port to a port
           name: node-admin
           apiGroup: rbac.authorization.k8s.io
 
-        --> We can create a cluster role for a particular resource which are namespaced only and an associated user or group can access those across all namesapces, meaning cluster wide.
+        --> We can create a cluster role for a particular resource which are namespaced only and an associated user or group can access those across all namespaces, meaning cluster wide.
 
     --> SERVICE ACCOUNTS 
             An account which is used to intergrate the third party tools to get the data or authenticate for some purpose.
@@ -1369,9 +1369,197 @@ Service listen to a port on the Node and forward requests on that port to a port
                   - protocol: <TCP/UDP>
                     port: <port_number>
 
+28) Service:
+        When we need to access the applicaiton hosted in pod, we need to expose this as service. We have already learned Service Types.
+        Each service gets its own IP which is different from pod and when a service is created, it spanned across all network and can be reached via it IP from any pod and any namespaces. 
+        When a service is getting created, it got the IP from pre-defined range of IPs. To assign the IP address to a service, it is done by Kube-Porxy and it created a forwarding rule via IP Tables to Pod IP and updated the table across all nodes.
+
+        Kube-proxy is doing it by creating and deleting these rules, by default it uses a IPTables mode, but it can set as USERSPACE (service listens on port and forstward the connections), IPVs (forward rules),. If you wish you change it then set --proxy-mode [<>] to desired mode.
+
+        can be checked inside:
+        root@k8master:~/CKA/labs# k exec -it kube-proxy-rlkxq -n kube-system -- cat /var/lib/kube-proxy/config.conf | grep -i mode
+        detectLocalMode: ""
+        mode: ""     (if empty, the default IPTables is used)
+
+        IP range are set by Kube-apiserver and can be checked in manifest file:
+        root@k8master:~/CKA/labs# cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i service-cluster-ip-range
+        - --service-cluster-ip-range=10.96.0.0/12
+
+        (and POD CIDR are set when we initialize our cluster --> kubeadm init --pod-network-cidr=10.244.0.0/16)
+        (for node IP, we can check the used CNI plugin logs, in our case, we check weave)
+        root@k8master:~/CKA/labs# k logs weave-net-kdzt9 -c weave -n kube-system | grep -i ipalloc
+        1:6784 ipalloc-init:consensus=3 ipalloc-range:10.32.0.0/12 metrics-addr:0.0.0.0:6782 name:a2:cb:d3:a2:69:db nickname:k8node1 no-dns:true no-masq-local:true port:6783]
+
+        ---> Range for Service IP and Pod CIDR should not be overlapped.
+
+        Check the IPTables forward rule:
+        root@k8master:~/CKA/labs# iptables -L -t nat | grep -i <service_name>  (will list the rule where it forwards the service IP to POD IP)
+
+        example:
+        root@k8master:~/CKA/labs# kubectl get pods -o wide
+        NAME        READY   STATUS    RESTARTS      AGE   IP          NODE      NOMINATED NODE   READINESS GATES
+        def-nginx   1/1     Running   1 (82m ago)   22h   10.36.0.3   k8node1   <none>           <none>
+        root@k8master:~/CKA/labs#
+        root@k8master:~/CKA/labs# kubectl get svc
+        NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+        def-nginx-svc   ClusterIP   10.100.215.56   <none>        80/TCP    22h
+        kubernetes      ClusterIP   10.96.0.1       <none>        443/TCP   3d12h
+        root@k8master:~/CKA/labs#
+        root@k8master:~/CKA/labs# iptables -L -t nat | grep -i def-nginx-svc
+        KUBE-MARK-MASQ  all  --  10.36.0.3            anywhere             /* default/def-nginx-svc */
+        DNAT       tcp  --  anywhere             anywhere             /* default/def-nginx-svc */ tcp to:10.36.0.3:80
+        KUBE-SVC-HPDRBN24IAJTBMI6  tcp  --  anywhere             10.100.215.56        /* default/def-nginx-svc cluster IP */ tcp dpt:http
+        KUBE-SEP-ASQLJ5AUARHHDWUH  all  --  anywhere             anywhere             /* default/def-nginx-svc -> 10.36.0.3:80 */
+
+        --> to check the logs, when a service is created, it makes an entry in /var/log/kube-proxy.log
 
 
+    --> CORE DNS:
+            Kuberenets set up its inbuilt DNS with cluster setup, and run as core-dns pod into master nodes.
+            When a new service is created, DNS record is updated and now instead of service IP, we can access it with name as well.
+            If in same namespace, then we can access it with servie name only.
+            If in a different namespace, then we need to append the namespace name at the end of service name.
+            It can further divided into subdomain called svc and then root domain, cluster.local
+
+            so finally, we have full name (FQDN) as 
+            <service_name>.<namespace_name>.svc.cluser.local
+
+        --> By default, record are updated or created for PODS as well, if you want then you can enable or disable.
+            It gets recorded as, let say pod ip is 10.36.0.1 then name will be 10-36-0-1 but can be accessed only with fqdn
+            and FQDN as - <IP_in_dash_format>.<namespace_name>.pod.cluster.local
+
+        --> Coredns pods main config file is mapped as configmap in kube-system namespace.
+                root@k8master:~/CKA/labs# k describe configmap coredns -n kube-system
+                Name:         coredns
+                Namespace:    kube-system
+                Labels:       <none>
+                Annotations:  <none>
+
+                Data
+                ====
+                Corefile:
+                ----
+                .:53 {
+                    errors
+                    health {
+                    lameduck 5s
+                    }
+                    ready
+                    kubernetes cluster.local in-addr.arpa ip6.arpa {
+                    pods insecure
+                    fallthrough in-addr.arpa ip6.arpa
+                    ttl 30
+                    }
+                    prometheus :9153
+                    forward . /etc/resolv.conf {
+                    max_concurrent 1000
+                    }
+                    cache 30
+                    loop
+                    reload
+                    loadbalance
+                }
+
+
+                BinaryData
+                ====
+
+            --> In this file, entry "pods insecure" takes care of the pods dns entry but we have 3 mode for this:
+                | Mode            | Description                                                                                                                       |
+                | --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+                | `pods insecure` | Registers pod names using their IPs, even if not verified by the API. Allows reverse DNS lookups (PTR). Old and less secure mode. |
+                | `pods verified` | Registers pods only after verifying against the Kubernetes API (recommended).                                                     |
+                | `pods disabled` | Disables per-pod DNS records completely (no A or PTR for pods).                                                                   |
+
+                ** when we say “pods known to the API,” we’re referring to Pods that are officially registered and managed by the Kubernetes API server
+                ** So, any Pod you create through the Kubernetes API (using kubectl, a YAML manifest, or a controller like a Deployment or DaemonSet) is “known to the API.”
+                ** If you just start a container manually using docker run or inject an IP record manually, CoreDNS in pods verified mode will ignore it — because it doesn’t exist in the Kubernetes API.
+                ** Static containers started by docker run
+
+                ** To recreate or modify Pod DNS records
+                # kubectl -n kube-system edit configmap coredns
+                # Replace insecure with verified (recommended) OR Whatever the requirement
+                # kubectl -n kube-system rollout restart deployment coredns
+
+        --> coredns runs as a replicaset and exposed as a service on IP 10.96.0.10 which can be use as DNS server for each pod:
+            root@k8master:~/CKA/labs# k get svc -n kube-system
+            NAME       TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                  AGE
+            kube-dns   ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP,9153/TCP   3d14h
+
+            This IP we can use in each pod as primary DNS server, so that pod or service can be resolved by each other with FQDN. Where as CORE DNS pod, in /etc/resolv.conf file, it has been set to same nameserver IP as in master node so that if pod or any app try to reach internet they can use this nameserver.
+
+        --> root@k8master:~/CKA/labs# k exec -it def-nginx -- cat /etc/resolv.conf
+            search default.svc.cluster.local svc.cluster.local cluster.local pdjeoyiylobuxaxlt2mnakeuib.gx.internal.cloudapp.net
+            nameserver 10.96.0.10
+
+        --> root@k8master:~/CKA/labs# k exec -it def-pod-4 -n dev -- cat /etc/resolv.conf
+            search dev.svc.cluster.local svc.cluster.local cluster.local pdjeoyiylobuxaxlt2mnakeuib.gx.internal.cloudapp.net
+            nameserver 10.96.0.10
+
+29) Ingress
+        Helps to redirect the external traffic to internal multiple services and implement the SSL Security as well.
+        It's a kind of Layer 7 LB but inbuilt in Kubernetes cluster itself.
+        But to make it avialable externally, we still need to expose it.
+        So, we can manage, authentcation for application, SSL load, url based routing, all can be done at this layer.
+
+        Without ingress: (manual)
+            We can deploy nginx, HAProxy or traefik reverse proxy inside the kubernetes.
+            Configure the URL Routes, SSL certificate
+
+        With ingress: (as a kuberenetes object)
+            Kubernetes also follow the same logic and any one of solution from above.
+            This resource or solution is called ingress controller and set of rule or configuration is called ingress resources.
+            These resouces can be created using definition files.
+            Ingress Controller is not the default setup, we need to setup it at time of cluster installation.
+
+        Ingress contoller Solution:
+            GCP HTTP(s) Load Balancer (GCE)
+            nginx
+            contour
+            HAProxy
+            traefik
+            Istio
+
+            | Ingress Controller             | Maintained by Kubernetes Project | Notes                                                |
+            | ------------------------------ | -------------------------------- | ---------------------------------------------------- |
+            | **Ingress-NGINX**              | ✅ Yes                            | Official and widely used                             |
+            | **GCE Ingress**                | ✅ Yes (for GKE only)             | Maintained for Google Cloud                          |
+            | **Traefik**                    | ❌ No                             | External project                                     |
+            | **HAProxy Ingress**            | ❌ No                             | External, production-grade                           |
+            | **NGINX Plus (by F5)**         | ❌ No                             | Commercial, different project                        |
+            | **Istio / Contour / Kong**     | ❌ No                             | Service mesh or API gateway style ingress            |
+            | **AWS ALB Ingress Controller** | ❌ No                             | Maintained by AWS                                    |
+            | **NGINX Ingress (F5 version)** | ❌ No                             | Maintained separately from Kubernetes’ ingress-nginx |
+
+            ✅ Repo:
+            👉 https://github.com/kubernetes/ingress-nginx  (official)
+            But we will use this:
+            https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/baremetal/deploy.yam
             
+        Deploy the solution:
+            1) We can deploy the nginx-ingress-controller as a deployment.
+            2) # special built image of nginx to be used as an ingress controller in K8s: registry.k8s.io/ingress-nginx/controller:v1.11.2
+            3) there are few configuration of nginx which also need to pass to pod, so in order to pass, create a configmap and mount the same inside the pod definition.
+            Like: err-log-path, keep-alive, ssl-protocols, timeout data etc.
+            (if you are not sure, as of now these values, then create a empty configmap and later we can set this easily)
+            4) set the two environment variable which have a value as POD Name and Namespace it is deployed to (better to deploy in dedicated namespace). These env variable is required by nginx service to read the configuration data wihtin the POD
+            5) Set the port for ingress controller (80 and 443)
+            6) create a  service type of NodePort with label selector to link the service.
+            7) create a role, cluster role and bind the same with service account
+            
+            We are ready to deploy our ingress-controller, now create the ingress resources:
+            8) Ingress rules are set of rule and configuration applied on the ingress controller where we can define the to forward all incoming traffic to a single applicaiton or route traffic to different applications (services), based on path (URL). for an example- /, /support, /help, /demo
+            - here / is the default domain or app, let say mywebapp, then
+            - mywebapp/support then route to support app(service)
+            - mywebapp/help then route to help app(service)
+            - mywebapp/demo then route to demo app(service)
+
+            Lets check out the demo now.
+            
+        
+
+
+
 
 
 

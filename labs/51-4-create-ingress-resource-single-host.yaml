@@ -1,0 +1,47 @@
+# default ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: default-backend-ing
+spec:
+  ingressClassName: nginx
+  defaultBackend:
+    service:
+      name: default-page-service
+      port:
+        number: 80
+
+# create ingress rule for ingress-webapp-pod
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webapp-ingress
+  namespace: default
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: path4cloud.app # here make sure, it resolve the IP of node else, create a local /etc/hosts entry
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web2-service
+            port:
+              number: 80
+      - path: /about.html
+        pathType: Prefix
+        backend:
+          service:
+            name: web2-service
+            port:
+              number: 80
+      - path: /contact.html
+        pathType: Prefix
+        backend:
+          service:
+            name: web2-service
+            port:
+              number: 80

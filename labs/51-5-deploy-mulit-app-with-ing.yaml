@@ -1,0 +1,129 @@
+# create a new config for a new deployment
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-ingress-content-1
+data:
+  index.html: |
+    Hello, Welcome to MicroServices Demo with Multi Hosts Ingress Rules. 
+    Home Page
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-ingress-content-2
+data:
+  index.html: |
+    I am About info Page and running in different pod with differnet service as ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-ingress-content-3
+data:
+  index.html: |
+    I am Contact info Page and running in different pod with differnet service as ClusterIP
+  info.html: |
+    Subscribe to Path4Cloud for more udpates. We do learn with Fun !!!
+---
+# create a home-pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: home-pod
+  labels:
+    app: webapp-home
+spec:
+  containers:
+  - name: webapp-container
+    image: nginx:latest
+    volumeMounts:
+    - name: webapp-volume
+      mountPath: /usr/share/nginx/html/index.html
+      subPath: index.html
+  volumes:
+  - name: webapp-volume
+    configMap:
+      name: multi-ingress-content-1
+---
+# create a About-pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: about-pod
+  labels:
+    app: webapp-about
+spec:
+  containers:
+  - name: webapp-container
+    image: nginx:latest
+    volumeMounts:
+    - name: webapp-volume
+      mountPath: /usr/share/nginx/html/index.html
+      subPath: index.html
+  volumes:
+  - name: webapp-volume
+    configMap:
+      name: multi-ingress-content-2
+---
+# create a Contact-pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: contact-pod
+  labels:
+    app: webapp-contact
+spec:
+  containers:
+  - name: webapp-container
+    image: nginx:latest
+    volumeMounts:
+    - name: webapp-volume
+      mountPath: /usr/share/nginx/html/index.html
+      subPath: index.html
+    - name: webapp-volume
+      mountPath: /usr/share/nginx/html/info.html
+      subPath: info.html
+  volumes:
+  - name: webapp-volume
+    configMap:
+      name: multi-ingress-content-3
+---
+# create a home pod service as ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-home-service
+spec:
+  selector:
+    app: webapp-home
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+---
+# create a about pod service as ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-about-service
+spec:
+  selector:
+    app: webapp-about
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+---
+# create a contact pod service as ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-contact-service
+spec:
+  selector:
+    app: webapp-contact
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

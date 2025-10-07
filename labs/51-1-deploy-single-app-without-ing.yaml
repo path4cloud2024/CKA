@@ -1,0 +1,50 @@
+# we have ingress-content-1 dir under this LAB, there we have hosted the different HTMLs files to attach to a web server as config map
+
+# first create config map - without-ingress-content-1
+
+# since the files have long content so will create from command line:
+
+# kubectl create configmap without-ingress-content-1 --from-file=ingress-content-1/
+
+# Create a Pod and mount the config map
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodeport-webapp
+  labels:
+    app: webapp-web
+spec:
+  containers:
+  - name: webapp-container
+    image: nginx:latest
+    volumeMounts:
+    - name: webapp-volume
+      mountPath: /usr/share/nginx/html/index.html
+      subPath: index.html
+    - name: webapp-volume
+      mountPath: /usr/share/nginx/html/about.html
+      subPath: about.html
+    - name: webapp-volume
+      mountPath: /usr/share/nginx/html/contact.html
+      subPath: contact.html
+  volumes:
+  - name: webapp-volume
+    configMap:
+      name: without-ingress-content-1
+---
+# create the service as NodePort 
+apiVersion: v1
+kind: Service
+metadata:
+  name: web1-service
+spec:
+  selector:
+    app: webapp-web
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+    nodePort: 31080
+  type: NodePort
+
+## now try to access the application using hostIP on port 31080
