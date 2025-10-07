@@ -20,6 +20,11 @@ metadata:
   namespace: default
 spec:
   ingressClassName: nginx
+  defaultBackend:
+    service:
+      name: default-page-service
+      port:
+        number: 80
   rules:
   - host: path4cloud.app # here make sure, it resolve the IP of node else, create a local /etc/hosts entry
     http:

@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: probe-demo
+  labels:
+    app: probe-demo
+spec:
+  containers:
+  - name: demo-app
+    image: busybox
+    args:
+    - /bin/sh
+    - -c
+    - >
+      touch /tmp/healthy; sleep 30; rm -f /tmp/healthy; sleep 600
+    livenessProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/healthy
+      initialDelaySeconds: 5
+      periodSeconds: 5
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 5
+    ports:
+    - containerPort: 8080

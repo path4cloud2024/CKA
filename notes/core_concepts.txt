@@ -1513,13 +1513,7 @@ Service listen to a port on the Node and forward requests on that port to a port
             Ingress Controller is not the default setup, we need to setup it at time of cluster installation.
 
         Ingress contoller Solution:
-            GCP HTTP(s) Load Balancer (GCE)
-            nginx
-            contour
-            HAProxy
-            traefik
-            Istio
-
+            
             | Ingress Controller             | Maintained by Kubernetes Project | Notes                                                |
             | ------------------------------ | -------------------------------- | ---------------------------------------------------- |
             | **Ingress-NGINX**              | ✅ Yes                            | Official and widely used                             |
@@ -1534,7 +1528,7 @@ Service listen to a port on the Node and forward requests on that port to a port
             ✅ Repo:
             👉 https://github.com/kubernetes/ingress-nginx  (official)
             But we will use this:
-            https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/baremetal/deploy.yam
+            https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/baremetal/deploy.yaml
             
         Deploy the solution:
             1) We can deploy the nginx-ingress-controller as a deployment.
@@ -1555,6 +1549,20 @@ Service listen to a port on the Node and forward requests on that port to a port
             - mywebapp/demo then route to demo app(service)
 
             Lets check out the demo now.
+            - deploy a single app without ingress and feel the problems that for each service we need a dedicated node port
+            - deploy the ingress and then deploy the same app and access it with ingress service not the app service post creatig the host rules.
+
+30) Liveness & Readiness Probes (Explained + Demo)
+        Liveness Probe → Checks if the container is still alive.
+                         If it fails → Kubelet kills and restarts the container.
+
+                          Used to auto-heal stuck apps (e.g., deadlock or unresponsive).
+
+        Readiness Probe → Checks if the container is ready to serve traffic.
+                          If it fails → Pod is removed from Service endpoints but not restarted.
+
+                          Used when app startup takes time (e.g., DB connections).
+
             
         
 
