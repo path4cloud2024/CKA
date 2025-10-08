@@ -10,7 +10,7 @@ spec:
     image: python:3.9
     ports:
     - containerPort: 8080
-    command: [ "python", "-m", "http.server", "8080" ]
+    command: [ "sh", "-c", "echo Hello > index.html && python -m http.server 8080" ]
     readinessProbe:
       httpGet:
         path: /h/
