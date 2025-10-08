@@ -3,6 +3,7 @@ kind: Pod
 metadata:
   name: full-probe-demo
 spec:
+  shareProcessNamespace: true
   initContainers:
   - name: init-message
     image: busybox
