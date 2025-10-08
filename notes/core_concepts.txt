@@ -1552,7 +1552,70 @@ Service listen to a port on the Node and forward requests on that port to a port
             - deploy a single app without ingress and feel the problems that for each service we need a dedicated node port
             - deploy the ingress and then deploy the same app and access it with ingress service not the app service post creatig the host rules.
 
-30) Liveness & Readiness Probes (Explained + Demo)
+    
+    Ingress Limitation:
+        - It support only Host matching, Path matching with HTTP only.
+        - It did not support for TCP/UDP routing, traffic spliting/weighting, header manipulation, authentication, rate limiting, redirects, session affinity, but we can pass those as annotations to controllers to different ingress controller such as for nginx its different and which is not supported by others. So these configurations are very specfic to underlying contollers.
+
+        ** To overcome this, K8s official project Gateway API can help.
+            Gateway API support INgress, Load Balancing, Service Mesh APIs.
+            To separate the conroll for entire Infra Yaml (like we had in Ingress Nginx), it creates the 3 class:
+                a) Gateway Class
+                    Where we specify the What infrastructure provider will be used, like nginx ingress controller, or other LoabBalancer.
+                b) Gateway
+                    Cluster Operator which are instances of the gateway class
+                c) HTTPRoutes
+                    Application Developers manages this for application as per need.
+            ** Gateway API already imlemented in Nginx Gateway Fabric (GA)
+                
+30) Kuberenets CRDs (Custom Resource Definitions)
+        It’s a way to extend Kubernetes with your own new resource types — beyond the built-in ones like Pod, Service, Deployment, etc.
+        You can define a new type like Database, or Backup but in order to work this actual, we need a Controller who actuall does the job so we can write our own conrtoller in GO lang and create a new object in kuberenetes. So, these both resources are custom like custom object and custom controller and to make these avilable as api we need to create a CRD resources where we need to defing the schemas, version, stroed versions, kind, group and few more.
+
+        Refer: # k get crd certificaterequests.cert-manager.io -o yaml
+        -->
+        apiVersion: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        metadata:
+            name: <name_of_crd> 
+        spec:
+            scope: Namespaced (or non spaced)
+            group: <api_class_group>  # like mycrd/v1 as apiVersion
+            names:
+              kind: <type> (like Pod, Deployment)
+              singular: <singlular_name_of_type>
+              plural: <plural_name_of_types>
+              shortNames:
+                <any_short_name_kind_type> (like we have cm for configmaps)
+            versions:
+              - name: <version_of_crd> (like v1, v2)
+                served: true
+                storage: true 
+                schema:
+                  openAPI3Schema: (defined what all fields are supported under spec and the type)
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      properties:
+                         description: (it could be any, description is just an example)
+                            type: string
+                         number:      (it could be any, number is just an example)
+                            type: integer
+                            minimum: 1
+                            maximum: <n>
+
+        ** Basically 2 steps are reqired to create your own object, one is CRDs file and controller then we can map the controller setup as image and run as pod inside the cluster and create these 2 resources.
+
+        ** But it can be binded together as Operator Framework. And then we create the operator or install it, it internally create the CRD resources and controller as deployment.
+
+        ** we can refer https://operatorhub.io/ for more info, where we have already pre-defined operators, we can simply downlaod, install and use it.
+
+
+
+
+
+31) Liveness & Readiness Probes (Explained + Demo)
         Liveness Probe → Checks if the container is still alive.
                          If it fails → Kubelet kills and restarts the container.
 
@@ -1562,6 +1625,43 @@ Service listen to a port on the Node and forward requests on that port to a port
                           If it fails → Pod is removed from Service endpoints but not restarted.
 
                           Used when app startup takes time (e.g., DB connections).
+
+        Demo - Liveness probe failed:
+        Events:
+        Type     Reason     Age                   From               Message
+        ----     ------     ----                  ----               -------
+        Normal   Scheduled  17m                   default-scheduler  Successfully assigned default/probe-demo to k8node2
+        Normal   Pulled     17m                   kubelet            Successfully pulled image "busybox" in 1.522s (1.522s including waiting). Image size: 2223686 bytes.
+        Normal   Pulled     16m                   kubelet            Successfully pulled image "busybox" in 339ms (339ms including waiting). Image size: 2223686 bytes.
+        Normal   Created    15m (x3 over 17m)     kubelet            Created container: demo-app
+        Normal   Started    15m (x3 over 17m)     kubelet            Started container demo-app
+        Normal   Pulled     15m                   kubelet            Successfully pulled image "busybox" in 493ms (493ms including waiting). Image size: 2223686 bytes.
+        Warning  Unhealthy  14m (x9 over 17m)     kubelet            Liveness probe failed: cat: can't open '/tmp/healthy': No such file or directory
+        Normal   Killing    14m (x3 over 17m)     kubelet            Container demo-app failed liveness probe, will be restarted
+        Normal   Pulling    14m (x4 over 17m)     kubelet            Pulling image "busybox"
+        Normal   Pulled     12m                   kubelet            Successfully pulled image "busybox" in 388ms (388ms including waiting). Image size: 2223686 bytes.
+        Warning  BackOff    2m34s (x29 over 10m)  kubelet            Back-off restarting failed container demo-app in pod probe-demo_default                        (b90befbd-bc1c-4f4c-bae0-11dbeb7e1b7
+
+
+        Demo - Readiness probe failed:
+        Events:
+        Type     Reason     Age                 From               Message
+        ----     ------     ----                ----               -------
+        Normal   Scheduled  2m11s               default-scheduler  Successfully assigned default/probe-real-demo to k8node1
+        Normal   Pulling    2m11s               kubelet            Pulling image "busybox"
+        Normal   Pulled     2m11s               kubelet            Successfully pulled image "busybox" in 359ms (359ms including waiting). Image size: 2223686 bytes.
+        Normal   Created    2m11s               kubelet            Created container: init-wait
+        Normal   Started    2m11s               kubelet            Started container init-wait
+        Normal   Killing    86s                 kubelet            Container demo-app failed liveness probe, will be restarted
+        Normal   Pulled     56s (x2 over 2m5s)  kubelet            Container image "python:3.9-slim" already present on machine
+        Normal   Created    56s (x2 over 2m5s)  kubelet            Created container: demo-app
+        Normal   Started    56s (x2 over 2m5s)  kubelet            Started container demo-app
+        Warning  Unhealthy  16s (x4 over 91s)   kubelet            Liveness probe failed: Get "http://10.36.0.2:8080/": dial tcp 10.36.0.2:8080: connect: connection refused
+        Warning  Unhealthy  16s (x10 over 91s)  kubelet            Readiness probe failed: Get "http://10.36.0.2:8080/": dial tcp 10.36.0.2:8080: connect: connection refused
+
+
+
+
 
             
         
