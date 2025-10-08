@@ -10,10 +10,10 @@ spec:
     image: python:3.9-slim
     ports:
     - containerPort: 8080
-    command: [ "sh", "-c", "while true; do echo hello; sleep 1; done" ]
+    command: [ "python", "-m", "http.server", "8080" ]
     readinessProbe:
       httpGet:
-        path: /healthz
+        path: /
         port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
