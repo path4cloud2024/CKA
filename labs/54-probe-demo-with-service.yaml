@@ -7,13 +7,13 @@ metadata:
 spec:
   containers:
   - name: demo-app
-    image: python:3.9-slim
+    image: python:3.9
     ports:
     - containerPort: 8080
     command: [ "python", "-m", "http.server", "8080" ]
     readinessProbe:
       httpGet:
-        path: /
+        path: /h/
         port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
