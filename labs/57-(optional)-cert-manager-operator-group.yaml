@@ -1,0 +1,9 @@
+# Create an OperatorGroup in operator namespace which defines a set of namespaces that an Operator will watch and issue a cert
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: cert-manager-operatorgroup
+  namespace: operators
+spec:
+  targetNamespaces:
+  - operators

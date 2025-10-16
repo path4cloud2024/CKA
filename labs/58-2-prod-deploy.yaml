@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prod-app
+  labels:
+    app: main-app
+spec:
+  replicas: 2 # Number of replicas (pods)
+  selector:
+    matchLabels:
+      app: main-app
+  template:
+    metadata:
+      labels:
+        app: main-app
+    spec:
+      containers:
+      - name: prod
+        image: amitaryan0010/path4cloud-web:latest # Replace with your image

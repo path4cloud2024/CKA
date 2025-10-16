@@ -104,6 +104,8 @@ Service listen to a port on the Node and forward requests on that port to a port
 
         --> To switch to different namespace
         # kubectl config set-context $(kubectl config current-context) --namespace=dev
+        OR
+        # kubectl config set-context --current --namespace=<ns_name>
         ( this command will switch to dev namespace and set permanantly dev as current namespace)
 
         --> to list the all the pods or resources from all namespaces
@@ -1570,7 +1572,7 @@ Service listen to a port on the Node and forward requests on that port to a port
                 
 30) Kuberenets CRDs (Custom Resource Definitions)
         It’s a way to extend Kubernetes with your own new resource types — beyond the built-in ones like Pod, Service, Deployment, etc.
-        You can define a new type like Database, or Backup but in order to work this actual, we need a Controller who actuall does the job so we can write our own conrtoller in GO lang and create a new object in kuberenetes. So, these both resources are custom like custom object and custom controller and to make these avilable as api we need to create a CRD resources where we need to defing the schemas, version, stroed versions, kind, group and few more.
+        You can define a new type like Database, or Backup but in order to work this actual, we need a Controller who actual does the job so we can write our own conrtoller in GO lang and create a new object in kuberenetes. So, these both resources are custom like custom object and custom controller and to make these avilable as api we need to create a CRD resources where we need to defing the schemas, version, stored versions, kind, group and few more.
 
         Refer: # k get crd certificaterequests.cert-manager.io -o yaml
         -->
@@ -1612,10 +1614,81 @@ Service listen to a port on the Node and forward requests on that port to a port
         ** we can refer https://operatorhub.io/ for more info, where we have already pre-defined operators, we can simply downlaod, install and use it.
 
 
+31) Operator:
+        An Operator in Kubernetes is a method of packaging, deploying, and managing a Kubernetes application. It extends the Kubernetes API with custom resources and automates complex application management tasks, mimicking the work of a human operator. Think of it as “Kubernetes-native automation for applications.”
+        
+        1️⃣ Concept
+
+            Kubernetes natively manages pods, deployments, services, etc.
+            Some applications (like databases, Kafka, or custom apps) have complex operational tasks: backups, scaling, upgrades, failover.
+            An Operator encodes operational knowledge in code using a Kubernetes controller.
+
+        2️⃣ Components of an Operator
+
+            Custom Resource Definition (CRD):
+                Extends Kubernetes API with new resource types, e.g., MySQLCluster.
+            Custom Controller:
+                Watches for changes to your CRs and reacts.
+                Performs tasks like creating pods, updating configurations, scaling, etc.
+            Custom Resource (CR):
+                An instance of the CRD, e.g., my-database of type MySQLCluster.
+
+        3️⃣ What an Operator Can Do
+
+            Deploy applications automatically.
+            Handle upgrades and configuration changes.
+            Self-heal: restart failed pods, reschedule workloads.
+            Perform backups or maintenance tasks.
+        
+        ** We can use Operator Framework:
+            - Write in GO lang
+            - Use Ansible
+            - Helm Chart
+
+        ** Mostly used Operator like Prometheus, Elastic Search, ISTIO, ArgoCD (many more)
+        ** and you can write your own or already written and publihsed can be downloaded from https://operatorhub.io/
+        ** Controller can be written in Go lang, Ansible or using a Helm Chart (list 0f all yaml files)
+        ** GO lang support the Bootstrap (watcher or listeners) and client-go interaction with reconciliation logic of all resources liek create, delete, updated.
+
+        ** we can download the Operator SDK (OLM - Operator lifecycle Manager) which will further install the Operator where we have all CR and CRDs with controller are defined.
+        (we can install the operator using Kubectl, Helm or OLM)
+
+        Demo 1) Cert Manager
+        - We will install OLM in your cluster. This will create a new namespace olm and deploy the OLM components. (https://operatorhub.io/operator/cert-manager)
+            (curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.32.0/install.sh | bash -s v0.32.0)
+        - install the operator and wait for pod to be ready (kubectl create -f https://operatorhub.io/install/cert-manager.yaml)
+            (kubectl get pods -n olm)
+        - wait for cert manager pods to come up
+            (kubectl get pods -n operators)
+        - check the cert-manager operator (CSV - Cluster Service Version) and wait to be succeeded
+            (kubectl get csv -n operators)
+        - Create an OperatorGroup in operator namespace which defines a set of namespaces that an Operator will watch and issue a cert (optional)
+            (check file 57-(optional)-cert-manager-operator-group.yaml)
+        - Create an Issuer 
+            (check file 57-1-self-signed-issuer.yaml)
+        - Create a Certificate
+            (check file 57-2-path4cloud-com-cert.yaml)
+
+        Demo 2) Kube-Green
+            that focuses on saving costs and energy by automatically managing the lifecycle of workloads in your cluster.
+        - We will install OLM in your cluster. This will create a new namespace olm and deploy the OLM components. (https://operatorhub.io/operator/kube-green)
+            (curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.32.0/install.sh | bash -s v0.32.0)
+        - - install the operator and wait for pod to be ready (kubectl create -f https://operatorhub.io/install/kube-green.yaml)
+            (kubectl get pods -n olm)
+        - wait for cert manager pods to come up
+            (kubectl get pods -n operators)
+        - check the cert-manager operator (CSV - Cluster Service Version) and wait to be succeeded
+            (kubectl get csv -n operators)
+        - create a sample application as deployment to test the operator
+            # kubectl apply -f 05-pod-deployment.yaml
+        - create one more deployment to get this excluded from operator action
+            # kubectl apply 0f 58-2-prod-deploy.yaml
+        - create a sleep info CR
+            # kubectl apply -f 58-2-sleep-info.yaml
+        - Now, verify the Operator action and included workloads will be scaled down or up as defined and excluded will be keep on running.
 
 
-
-31) Liveness & Readiness Probes (Explained + Demo)
+32) Liveness & Readiness Probes (Explained + Demo)
         Liveness Probe → Checks if the container is still alive.
                          If it fails → Kubelet kills and restarts the container.
 
@@ -1625,6 +1698,23 @@ Service listen to a port on the Node and forward requests on that port to a port
                           If it fails → Pod is removed from Service endpoints but not restarted.
 
                           Used when app startup takes time (e.g., DB connections).
+
+        Startup Probe   →  is a type of health probe in Kubernetes used to check whether your container has successfully started.
+                           It’s especially useful for applications that take a long time to start, such as Java or database services.
+                           Until the startup probe succeeds, Kubernetes won’t run liveness or readiness probes — so it prevents your container from being killed or marked “unready” too early.
+
+        Probe Types:
+            You can use the same kinds of probes as for liveness/readiness:
+                HTTP (httpGet) - path based like, /healthz on some port are accessible
+                TCP (tcpSocket) - look for a port whether its listening
+                Command (exec) - we can run some command to check like, whether some file is exists or not 
+
+        Probe Time Configurations:
+            initialDelaySeconds (wait time before it starts): default = 0 second
+            periodSeconds (time interal between checks): default 10 seconds
+            timeoutSeconds (max timeout for response): 1 second
+            successThreshold (consecutive success before it mark success): defualt 1 second
+            failureThreshold (consecutive failure before it mark failed): default 3 seconds
 
         Demo - Liveness probe failed:
         Events:
@@ -1660,10 +1750,136 @@ Service listen to a port on the Node and forward requests on that port to a port
         Warning  Unhealthy  16s (x10 over 91s)  kubelet            Readiness probe failed: Get "http://10.36.0.2:8080/": dial tcp 10.36.0.2:8080: connect: connection refused
 
 
+33) Jobs and CronJobs (not included in CKA Exam but good to know)
+
+        Jobs:
+            A Job in Kubernetes is a controller that runs one or more Pods until they successfully complete.
+            Unlike a Deployment or ReplicaSet (which keep Pods running continuously), a Job ensures that:
+            A specific task runs to completion (e.g., a script or batch process)
+            Kubernetes retries failed Pods if needed
+            Once the task succeeds, the Job is considered "Completed"
+
+            ⚙️ Typical Use Cases
+
+                ✅ One-time tasks
+                    Database migrations
+                    Initializing data in a service or copy a file
+                    Sending emails or reports
+
+                ✅ Batch processing
+                    ETL or data processing pipelines
+                    Cleanup scripts (log deletion, backup rotation)
+
+                ✅ Periodic tasks (via CronJob)
+                    Same as Job, but scheduled (e.g., every night at 2 AM)
+
+            ⚙️ Job Spec Key Fields
+                | Field                    | Description                                                       |
+                | -------------------------| ----------------------------------------------------------------- |
+                | `completions`            | Total number of Pods to complete successfully before Job is done. |
+                | `parallelism`            | Number of Pods to run in parallel.                                |
+                | `backoffLimit`           | How many retries before marking the Job as failed.                |
+                | `activeDeadlineSeconds`  | Max duration Job can run.                                         |
+                | 'ttlSecondsAfterFinished'| It removeds the Job after finishes (succeded or failed)           |
+                                            
+                                            
+                ** for ttl field once the time is over, then job will be deleted, pod for this job will be collected as garbage collector and removed after
+                ** backofflimit, if a pod failed to do its job, failed pod will be deleted and new pod will be created.
+                ** restartPollicy: for container, use only Never or onFailure
+
+        CronJob:
+            It runs a Job on a defined time schedule.
+            It’s perfect for automated recurring tasks, such as:
+                Backups
+                Log cleanup
+                Database maintenance
+                Periodic reports
+            Think of it like a Kubernetes-native crontab.      
+            🕒 Cron Schedule Format (Same as Linux cron:)
+
+            ┌───────────── minute (0–59)
+            │ ┌──────────── hour (0–23)
+            │ │ ┌────────── day of month (1–31)
+            │ │ │ ┌──────── month (1–12)
+            │ │ │ │ ┌────── day of week (0–6, Sun=0)
+            │ │ │ │ │
+            │ │ │ │ │
+            * * * * *
+
+            | Schedule      | Meaning                  |
+            | ------------- | ------------------------ |
+            | `*/5 * * * *` | Every 5 minutes          |
+            | `0 * * * *`   | Every hour               |
+            | `0 2 * * *`   | Every day at 2 AM        |
+            | `0 0 * * 0`   | Every Sunday at midnight |
+
+
+34) Admission Controller (AC):
+		when we create any resource let say pod, we instruct api-server via kubelet and pod gets created.
+		And it usually happened via authentication with certificates and then authorization to check the permission whether a user has permission to create or perform any action.
+		
+		But this can be done via RBAC and only imposed at API level.
+		Let say, a user is allowed to create, get, list, update, delete pod and then he can create the pod using any image but what if we want to create the pod only from internal repo with defined tags, or some other permission let say:
+		- only permit images from certain registry, may be internal not public.
+		- do not permit runAs root user
+		- only permit certain capabilities
+		- pod always has labels
+		
+		All these things can be done via admission controller to secure more your cluster.
+		Apart from, validating the request, it can perform additional operations like validating or modifying.
+		some prebuilt admission controllers are:
+			- AlwaysPullimages (every time a image will be pulled)
+			- DefaultStorageClass (if not specified any then adds the default PVCs)
+			- EventRateLimit (can help to set a limit on the request with the API server can handle at a time to prevent the API server from flooding with requests.)
+			- NamespaceExists (reject request if namespace doesn't exist, enabled by defualt)
+			- NamepspaceAutoProvision (will create the namespace if doesn't exist, not enabled by default)
+			
+		to list all the enabled admission controller run:
+		# kube-apiserver -h | grep enable-admission-plugins
+		OR
+		# kubectl exec kube-apiserver -n kube-system -- kube-apiserver -h | grep enable-admission-plugins
+				
+		If we want to enable any AC which are not enabled, then add it in service file or kube-apiserver manifest file:
+		- --enable-admission-plugins=NamespaceAutoProvision,NodeRestriction
+		to disable any:
+		- --disable-admission-plugins=DefaultStorageClass
+		
+		** NamepspaceAutoProvision and NamespaceExists are deprecated and replaced by Namespace Lifecycle admission controller, which will make sure, a request to create resource in namespace which doesn't exist then that request will be rejected and a defualt namespace like Kube-System and Kube-Public is locked and can't be deleted.
+		
+		
+		Validation and Mutation Admission Controller
+		
+		Validating Controller:
+			Which validates the configuration and allow or deny the request.
+			Like, NamespaceExists (if no namespace then it can reject the namespace)
+                  ResourceQuota
+                  NamespaceLifecycle
+			
+		Mutating Controller:
+			Which validates the configuration and can change the configuration in order to succeed.
+			like, DefaultStorageClass (if not storage class is mentioned in PVC.yaml file then it can add storageClassName as default)
+                  DefaultTolerationSeconds
+                  DefaultIngressClass
+
+        ** Both Mutating and Validating:
+            LimitRange, AlwaysPullimages, ServiceAccount
+			
+		User Defined or custom controller, that mutates or validates that has our own logic
+		To support external admission controllers, there are two special admission controller:
+		- MutatingAdmission Webhook
+		- ValidatingAdmission Webhook
+
+        And these webhook can be hosted outside of cluster or as a deployment inside the cluster. There are few market ready solution, usually called as Policy Engine, they are OPA, Gatekeeper, Kyerno and may be many more. If we want to build our own custom logic that also can be build in Go or Python and then we can run as dedicated API engine server or deploy as a pod & its service inside the cluster.
+
+        Custom Logic can be:
+            Pods must have some env or team information label (Validating)
+            Default Lable if missing (Mutating)
+            only permit images from certain registry, may be internal not public. (validating)
+		    do not permit runAs root user (validating)
 
 
 
-            
+                            
         
 
 

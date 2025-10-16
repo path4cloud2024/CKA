@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cron-job-demo
+spec:
+  schedule: "*/2 * * * *" # execute in every 2 minutes
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 60
+      completions: 5
+      parallelism: 2
+      backoffLimit: 4
+      template:
+        spec:
+          containers:
+          - name: worker
+            image: busybox
+            command: [ "sh", "-c", "echo Processing && sleep 10" ]
+          restartPolicy: Never

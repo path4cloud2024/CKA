@@ -1,0 +1,15 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: my-cert-manager
+  namespace: operators
+spec:
+  channel: stable # chooses the latest version in the stable channel.
+  name: cert-manager
+  source: operatorhubio-catalog
+  sourceNamespace: olm
+  # startingCSV: cert-manager.v1.14.0 --> is the exact ClusterServiceVersion name you want to install.
+
+  # How to find the CSV names
+  # kubectl get csv -n olm | grep cert-manager
+

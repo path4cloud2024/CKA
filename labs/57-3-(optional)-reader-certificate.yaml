@@ -1,0 +1,22 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: reader-client-cert
+  namespace: default
+spec:
+  secretName: reader-client-tls
+  commonName: reader-user
+  subject:
+    organizations:
+    - ExampleCorp
+    organizationalUnits:
+    - ReaderRole
+  uris:
+  - spiffe://example.com/roles/reader
+  usages:
+  - digital signature
+  - key encipherment
+  - client auth
+  issuerRef:
+    name: selfsigned-issuer
+    kind: Issuer

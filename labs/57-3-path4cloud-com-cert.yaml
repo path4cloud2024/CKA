@@ -1,0 +1,19 @@
+# my-app-certificate.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: path4cloud-certificate
+  namespace: default
+spec:
+  secretName: path4cloud-tls
+  dnsNames:
+  - path4cloud.com
+  issuerRef:
+    name: my-selfsigned-issuer
+    kind: Issuer
+
+# if you want to include “Reader” identity information in a cert for authentication:
+# then check 57-3-(optional)-reader-certificate.yaml
+
+# to verify or list the certificate, run:
+# kubectl get secret path4cloud-tls
