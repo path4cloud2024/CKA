@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: conflict-pod
+  labels:
+    app: conflict-pod
+spec:
+  restartPolicy: OnFailure
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 0
+  containers:
+  - name: busybox
+    image: busybox
+    command: [ :sh", "-c", "echo I am running as used $(id -u)" ]
+
+# this pod should be denied by webhook-server.

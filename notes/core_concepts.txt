@@ -1877,8 +1877,59 @@ Service listen to a port on the Node and forward requests on that port to a port
             only permit images from certain registry, may be internal not public. (validating)
 		    do not permit runAs root user (validating)
 
+        Demo:
+            We will deploy the webhook-server to mutate and validate using image from StackRox (RedHat Advanced Cluster Security)
+            🧩 1️⃣ Context
+                File 62-webhook-server.yaml deploys a Kubernetes admission webhook server — specifically, a Mutating/Validating Admission Controller demo provided by StackRox (Red Hat Advanced Cluster Security).
+                # kubectl apply -f 62-webhook-server.yaml
+
+            🚀 2️⃣ What the image does (stackrox/admission-controller-demo)
+                That container image runs a small Go-based HTTPS server that:
+                    - Listens on port 8443 (as configured),
+                    - Accepts AdmissionReview requests from the Kubernetes API server, and
+                    - Validates or mutates Kubernetes objects (like Pods) before they are created or updated.
+                    - It’s used to demonstrate how Kubernetes admission webhooks work — not to enforce any real policies.
+
+            🧠 3️⃣ What the webhook actually does (behavior)
+                The stackrox/admission-controller-demo image performs simple validation or mutation logic, such as:
+                    - Logging all incoming admission requests,
+                    - Optionally rejecting or modifying Pod specifications (for example, ensuring labels exist, or adding annotations),
+                    - Sending back an AdmissionReview response (allowed: true/false).
+                    - Essentially, it acts as a mock policy gatekeeper, showing how the admission flow works.
+
+            ⚙️ 4️⃣ What this YAML sets up
+                    | Section                                 | Purpose                                                                                                |
+                    | --------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+                    | **Deployment**                          | Runs the webhook server (one replica).                                                                 |
+                    | **Container port 8443**                 | Webhook API listens here (HTTPS).                                                                      |
+                    | **Secret volume** (`webhook-tls-certs`) | Provides TLS certificates required for secure webhook communication.                                   |
+                    | **Service**                             | Exposes the webhook server internally within the cluster (Kubernetes will call this service endpoint). |
+
+            🛡️ 5️⃣ Next Action:
+                - Once webohook server is deployed, you typically also create a MutatingWebhookConfiguration or ValidatingWebhookConfiguration.
+                  Like: 63-webhook-configuration.yaml
+                - Create the CA bundle (self-signed certificate if needed)
+                    # openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout tls.key -out tls.crt -subj "/CN=webhook-server-svc.webhook-demo.svc"
+                    # kubectl create secret tls webhook-tls-certs --cert tls.crt --key tls.key
+                    # cat tls.crt | base64 | tr -d '\n' > ca-bundle.txt (replace the real ca-bundle in 63-webhook-configuration.yaml file)
+                    # kubectl apply -f 63-webhook-configuration.yaml
+                    # kubectl get validatingwebhookconfigurations
+                    # kubectl get mutatingwebhookconfigurations
+                    
 
 
+35) Kuberenetes Priorities:
+        By default, its always high for kuberenetes cluster components which is critical to run the cluster.
+	 
+        Similarly, we can set the priority to avoid interupption by lower priority workloads.
+        and we can do that, with the help of priority classes which helps us to define the priorities for different workloads so that higher priority workloads always gets a priority over the lower priority workloads which means, if somehow a higher priority pod get killed and scheduler tries to start it again and due to some resource crunch if its not able to start then it kills the lower priority pod.
+        
+        Priority Classes (PC) are non-namespaced object so they are available to be configured on any pod in any namespace. It can defined with range from 1,000,000,000 to -2,147,483,648 is for user hosted applications or pods. But for system workloads this range would be 2,000,000,000 to 1,000,000,000
+
+        controlplane:~$ kubectl get priorityclass
+        NAME                      VALUE        GLOBAL-DEFAULT   AGE   PREEMPTIONPOLICY
+        system-cluster-critical   2000000000   false            26d   PreemptLowerPriority
+        system-node-critical      2000001000   false            26d   PreemptLowerPriority
                             
         
 

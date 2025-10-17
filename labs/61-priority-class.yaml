@@ -1,0 +1,7 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: my-priority
+value: 1000000000 # range can be set from 1,000,000,000 to -2,147,483,648
+description: "set this PC for prod workloads"
+globalDefault: true # this can be set as default for all pod but can be set only for a single priority class since we can't have multiple global values for the priority class.
