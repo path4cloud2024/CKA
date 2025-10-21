@@ -1883,6 +1883,8 @@ Service listen to a port on the Node and forward requests on that port to a port
                 File 62-webhook-server.yaml deploys a Kubernetes admission webhook server — specifically, a Mutating/Validating Admission Controller demo provided by StackRox (Red Hat Advanced Cluster Security).
                 # kubectl apply -f 62-webhook-server.yaml
 
+                Source: https://github.com/stackrox/admission-controller-webhook-demo/tree/main
+                
             🚀 2️⃣ What the image does (stackrox/admission-controller-demo)
                 That container image runs a small Go-based HTTPS server that:
                     - Listens on port 8443 (as configured),
@@ -1915,7 +1917,8 @@ Service listen to a port on the Node and forward requests on that port to a port
                     # kubectl apply -f 63-webhook-configuration.yaml
                     # kubectl get validatingwebhookconfigurations
                     # kubectl get mutatingwebhookconfigurations
-                    
+                
+                Now, if we deploy the pod, then that goes with Validating and Mutating.
 
 
 35) Kuberenetes Priorities:
@@ -1930,9 +1933,229 @@ Service listen to a port on the Node and forward requests on that port to a port
         NAME                      VALUE        GLOBAL-DEFAULT   AGE   PREEMPTIONPOLICY
         system-cluster-critical   2000000000   false            26d   PreemptLowerPriority
         system-node-critical      2000001000   false            26d   PreemptLowerPriority
-                            
-        
 
+36) Autoscaling
+        Horizontal Pod Autoscaling (HPA)
+        Vertical Pod Autoscaling (VPA)
+
+        Usually, we have two scenario, one for Cluster Infra itseld and other is workload running on cluster.
+        - Scaling CLuster Infra 
+            * Horizontal Scale (adding more nodes in cluster)
+            * Vertical Scale (adding more resources like CPU or RAM in a node)
+
+        - Scaling workload
+            * Horizontal Scaling (adding more pods for same application)
+            * Vertical Scaling (adding more resources to allocaed resources to a single pod)
+
+        Methods:
+        - Manual Infra
+            * Horizontal (kubeadm join <new_node>)
+            * Vertical (taking down server and adding more soruces to it)
+        - Manual workload
+            * Horizontal (kubectl scale <deployment>)
+            * Vertical (kubectl edit <deploymenet>)
+
+        Automated 
+        - Infra
+            Cluster Autoscaler
+        - workload
+            Horizontal Pod Autoscaler
+            Vertical Pod Autoscaler
+
+        HPA: It’s a controller that automatically scales the number of Pods in a deployment, replica set, or statefulset based on real-time resource usage (like CPU, memory, or custom metrics).
+            ⚙️ How it works
+                You define a target metric — e.g. “Keep average CPU at 50%”.
+                The HPA continuously monitors metrics (via the metrics-server).
+                When usage goes above or below the target, it increases or decreases the replica count accordingly.
+            ⚡ Requirements: Metrics Server must be installed (kubectl get apiservices | grep metrics).
+
+            # kubectl autoscale deployment <dep_name> --cpu-percent=50 --min=1 --max=10
+            # kubectl get hpa 
+
+            Demo:
+            # kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+            # kubectl create -f 67-1-hpa-app-demo.yaml
+            # kubectl expose deployment hpa-app --port=80 --target-port=80
+            # kubectl create -f 67-2-hpa-config.yaml
+            # kubectl get hpa
+            --> generate CPU load now:
+            - Run a busybox Pod to hit your nginx server continuously:
+            # kubectl run -i --tty load-generator --image=busybox /bin/sh
+            # while true; do wget -q -O- http://nginx-deployment.default.svc.cluster.local; done (run inside the shell)
+            --> Watch the hpa scale pods:
+            # kubectl get hpa -w
+
+            Now, stop the loads:
+            # kubectl delete pod load-generator
+            --> After a few minutes, HPA will scale back down to 1 pod.
+
+            ** HPA depends on metrics server and continuously watching the metrics defined, it can also get the information from custom metric adapter inside from workloads and from outside source using externla adapter like datadog/dynatrace.
+
+        VPA:
+            Before we jump into VPA, so far we have seen , we can edit the current pod and change the resource requests and limits but that requires a restart of pod means, pods needs to be terminated and redeployed it from temporary saved file or replace forcefully with this file which is again deleting the current pod and start it again with new resource limits, this is known as In-Place Pod Resizing and its a default behavior.
+
+            If we want to take a leverage of In-Place Pod Resizing without recreating it then we can enable the feature_gate flag in API server and then introduce the resizing policy in deployment.
+            Flag to set: --feature-gates=InPlacePodVerticalScaling=true
+
+            resizePolicy:
+            - resourceName: cpu
+              restartPolicy: NotRequired
+            - resourceName: memory
+              restartPolicy: RestartContainer
+
+            But this flag, we have some limitation:
+            - Only works for CPU and Memory
+            - Init Container and Ephemeral Containers cannot be resized
+            - Resource requests and limits cannot be removed once set
+            - A container's memory limit can't be set below its current usage
+            - windows pods cannot be resized
+
+
+
+
+            🧠 Horizontal vs. Vertical Scaling
+            | Feature                             | Type                              | Effect                     |
+            | ----------------------------------- | --------------------------------- | -------------------------- |
+            | **HPA (Horizontal Pod Autoscaler)** | Scales *number* of Pods           | Adjusts replicas (1 → N)   |
+            | **VPA (Vertical Pod Autoscaler)**   | Scales *resources* of Pods        | Adjusts CPU/memory per Pod |
+            | **In-place scaling (new)**          | Updates resource *in running Pod* | No restart or downtime     |
+
+
+            Now, lets look at VPA, we can donwload the manifest file and deploy it.
+            # kubectl apply -f https://github.com/kubernetes/autoscaler/releases/latest/download/vertical-pod-autoscaler.yaml 
+            # kubectl get pods -n kube-system
+            (it will deploy admission-controller, recommender and udpater service)
+            recommender: continuously monitoring the usage from metric server for live uage of pods and provides recommendation on optimal CPU and memory values.
+            Updater: it evicts the current pod if recommender recommends the new values.
+            Admission-Controller, it mutates the pod sepcifaction and set the recommended values while spinning up the pod again.
+
+            All VPA Pods will start in kube-system namespace.
+            We can follow below steps to install the VPA.
+            - git clone https://github.com/kubernetes/autoscaler.git
+            - cd autoscaler/vertical-pod-autoscaler
+            - ./hack/vpa-up.sh (it will create, clusterrole, binding, serviceaccount, secret, deployment and all required objects)
+            
+            - verigy the pods are running:
+            # kubectl get pods -n kube-system | grep -i vpa
+
+            now we can verify the vertical api is avaialble now:
+            controlplane:~/autoscaler/vertical-pod-autoscaler$ k api-resources | grep -i verti
+            verticalpodautoscalercheckpoints    vpacheckpoint   autoscaling.k8s.io/v1             true         VerticalPodAutoscalerCheckpoint
+            verticalpodautoscalers              vpa             autoscaling.k8s.io/v1             true         VerticalPodAutoscaler
+
+
+            Demo:
+            # kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+            # kubectl create -f 67-1-hpa-app-demo.yaml
+            # kubectl expose deployment hpa-app --port=80 --target-port=80
+            # kubectl create -f 68-vpa-config.yaml
+
+            (use the same load-generate pod to see an action)
+
+        There are four possible values for updateMode — here’s what each does:
+        | **Mode**     | **Description**                                                 When to use
+        | ------------ | ----------------------------------------------------------------| -------------------------------------------------------------------|
+        | **Off**      | VPA **only records recommendations** —                          |Use this to **observe recommendations** safely before applying them.
+        |--------------|it doesn’t update pods automatically or during restart.          |                  
+        | **Initial**  | VPA applies recommended resources **only at pod creation        | Good for workloads where you want autosized pods at startup, but 
+        |              | time** (i.e., when a pod is first scheduled). If pod already    | no runtime changes.
+        |--------------| exists, VPA won’t evict or modify it.                           |
+        | **Recreate** | VPA automatically **deletes (evicts)** pods and recreates       | Useful for stateless apps where pods can be restarted easily.
+        |              | them with updated resource requests when recommendations change.|
+        |--------------|                                                                 |
+        | **Auto**     | Same as **Recreate** (currently behaves identically).           | Default choice — fully automated resizing for most cases.           
+        |              | In future versions, may allow more advanced or hybrid updates.  |
+
+        🧩 Difference Between HPA and VPA
+        | Feature                 | **Horizontal Pod Autoscaler (HPA)**                                    | **Vertical Pod Autoscaler (VPA)**                                                  |
+        | ----------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+        | **What it scales**      | Number of **pods** in a deployment or replica set                      | **CPU / Memory requests and limits** inside each pod                               |
+        | **Scaling direction**   | **Horizontal** → Adds/removes pods                                     | **Vertical** → Increases/decreases resources for existing pods                     |
+        | **Metric source**       | CPU, memory, custom metrics (via metrics-server or Prometheus adapter) | Observed resource usage over time                                                  |
+        | **Goal**                | Maintain target utilization per pod (e.g., 70% CPU)                    | Ensure each pod has optimal CPU/memory                                             |
+        | **How it works**        | Creates or deletes pods to meet workload demand                        | Recommends or applies resource changes to pods                                     |
+        | **When scaling occurs** | Continuous adjustment during load changes                              | Periodically, after analyzing usage history                                        |
+        | **Pod restart**         | No (pods are simply added/removed)                                     | Yes — pod must restart to apply new resource requests (in `Recreate`/`Auto` modes) |
+        | **Dependencies**        | Requires metrics-server or custom metrics API                          | Requires VPA components (recommender, updater, admission-controller)               |
+        | **Best for**            | Stateless workloads (e.g., web apps, APIs)                             | Stateful or long-running workloads (e.g., DBs, ML jobs, queues)                    |
+
+        🧠 Example Use Cases
+        | Use Case                                           | HPA                                   | VPA                               
+        | -------------------------------------------------- | ------------------------------------  | --------------------------------- 
+        | Web servers with fluctuating user traffic          | ✅ Scales pods up/down with load      | ⚙️ Keeps each pod optimally sized 
+        | Batch jobs or ML workloads with changing CPU needs | 🚫 Not ideal (pods long-running)      | ✅ Adjusts CPU/mem per pod         
+        | Database pods (PostgreSQL, MongoDB, etc.)          | 🚫 Scaling replicas is complex        | ✅ Tunes memory automatically      
+        | API service that spikes during peak hours          | ✅ Adds more pods during high traffic | ⚙️ Helps tune each pod's size     
+
+37) Helm
+        it is the package manager for kubernetes and works like a intall and unintall wizard. Helm helps you to install, upgrade, and manage complex kubernetes applications easuly using pre-built packages called Help Chart.
+        📦 What Is a Helm Chart
+
+            A Helm Chart is a bundle of YAML templates that define:
+                Deployments
+                Services
+                ConfigMaps
+                Secrets
+                Ingresses
+                    etc.
+            All combined into one reusable package.
+
+        ⚙️ Helm Key Concepts
+        | Concept         | Description                                                                      |
+        | --------------- | -------------------------------------------------------------------------------- |
+        | **Chart**       | The package (like an app definition)                                             |
+        | **Repository**  | A collection of charts (like Docker Hub for Helm)                                |
+        | **Release**     | An installed instance of a chart in your cluster                                 |
+        | **Values.yaml** | Config file where you override default parameters (like version, replicas, etc.) |
+        | **Templates/**  | Folder inside a chart containing Kubernetes YAML templates                       |
+
+        🧠 Example Workflow
+        # 1️⃣ Add a chart repository
+        helm repo add bitnami https://charts.bitnami.com/bitnami
+
+        # 2️⃣ Search for a chart
+        helm search repo nginx
+
+        # 3️⃣ Install a chart
+        helm install my-nginx bitnami/nginx --namespace webapps
+
+        # 4️⃣ Check status
+        helm list -n webapps
+
+        # 5️⃣ Upgrade configuration
+        helm upgrade my-nginx bitnami/nginx --set replicaCount=3
+
+        # 6️⃣ Uninstall
+        helm uninstall my-nginx -n webapps
+
+        💡 Why Use Helm
+        | Benefit                       | Description                                                                          |
+        | ----------------------------- | ------------------------------------------------------------------------------------ |
+        | ✅ **Simplifies Deployments** | No need to manage dozens of YAMLs manually                                           |
+        | ⚙️ **Templating & Variables** | Dynamic values (environment-specific)                                                |
+        | 🔄 **Version Control**        | Easy rollback of releases                                                            |
+        | 📁 **Reusability**            | Share your app as a chart for others to use                                          |
+        | 🌐 **Public Repository**      | Thousands of official and community charts on [Artifact Hub](https://artifacthub.io) |
+
+        🏗️ Example Directory Structure
+        mychart/
+        ├── Chart.yaml          # Chart metadata (name, version, description)
+        ├── values.yaml         # Default configuration values
+        └── templates/          # Kubernetes YAML templates
+            ├── deployment.yaml
+            ├── service.yaml
+            └── ingress.yaml
+
+        ⚙️ Command to run app with Helm
+        # helm install <chart_name>
+        # helm upgrade <chart_name>
+        # helm rollback <chart_name>
+        # helm uninstall <chart_name>
+
+        --> Install helm, follow the official documents:
+        https://helm.sh/docs/intro/install/
+
+        
 
 
 
