@@ -1780,7 +1780,7 @@ Service listen to a port on the Node and forward requests on that port to a port
                 | `parallelism`            | Number of Pods to run in parallel.                                |
                 | `backoffLimit`           | How many retries before marking the Job as failed.                |
                 | `activeDeadlineSeconds`  | Max duration Job can run.                                         |
-                | 'ttlSecondsAfterFinished'| It removeds the Job after finishes (succeded or failed)           |
+                | 'AftettlSecondsrFinished'| It removeds the Job after finishes (succeded or failed)           |
                                             
                                             
                 ** for ttl field once the time is over, then job will be deleted, pod for this job will be collected as garbage collector and removed after
@@ -1933,6 +1933,23 @@ Service listen to a port on the Node and forward requests on that port to a port
         NAME                      VALUE        GLOBAL-DEFAULT   AGE   PREEMPTIONPOLICY
         system-cluster-critical   2000000000   false            26d   PreemptLowerPriority
         system-node-critical      2000001000   false            26d   PreemptLowerPriority
+
+        ⚙️ What is PreemptionPolicy in Kubernetes?
+            - In Kubernetes, the scheduler decides which Pod runs on which Node.
+            - When the cluster runs out of resources (CPU, memory, etc.), some low-priority pods might be removed to make space for higher-priority pods — this is called Preemption.
+            - The PreemptionPolicy field in a Pod’s PriorityClass controls whether this preemption behavior is allowed or not.
+        🧩 Types of PreemptionPolicy
+        There are two possible values:    
+        | Value                  | Meaning                                                                                         |
+        | ---------------------- | ----------------------------------------------------------------------------------------------- |
+        | `PreemptLowerPriority` | (Default) The scheduler can evict lower-priority pods to make room for this pod.                |
+        | `Never`                | The scheduler will not preempt (evict) any existing pods, even if this pod cannot be scheduled. |
+
+        💡 Best Practices
+            - Use PriorityClasses for workload segregation — e.g., system pods, app pods, test pods.
+            - Avoid giving all pods the same high priority (it defeats the purpose).
+            - Use Never for non-critical pods that shouldn’t interrupt others.
+            - Monitor scheduling events.
 
 36) Autoscaling
         Horizontal Pod Autoscaling (HPA)

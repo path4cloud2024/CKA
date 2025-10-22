@@ -1,0 +1,17 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: prod-priority
+value: 1000 # range can be set from 1,000,000,000 to -2,147,483,648
+preemptionPolicy: PreemptLowerPriority # default behavior
+globalDefault: false
+description: "High priority class that can preempt lower priority pods"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: non-preempting
+value: 900 # range can be set from 1,000,000,000 to -2,147,483,648
+preemptionPolicy: Never
+globalDefault: true
+description: "This pod will not preempt lower-priority pods"

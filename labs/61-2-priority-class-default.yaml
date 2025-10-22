@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dev-apps
+  labels:
+    app: nginx-dev-web
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: dev-nginx
+  template:
+    metadata:
+      labels:
+        app: dev-nginx
+    spec:
+      containers:
+      - name: web1
+        image: amitaryan0010/path4cloud-web:latest
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "100M"
+          limits:
+            memory: "250Mi"
+            cpu: "200M"

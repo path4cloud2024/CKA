@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prod-apps
+  labels:
+    app: nginx-web
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      priorityClassName: prod-priority
+      containers:
+      - name: web1
+        image: amitaryan0010/path4cloud-web:latest
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "250M"
+          limits:
+            memory: "250Mi"
+            cpu: "500M"
