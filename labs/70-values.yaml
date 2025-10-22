@@ -1,0 +1,7 @@
+replicaCount: 2
+image:
+  repository: nginx
+  tag: latest
+
+# if need to create the custom-values.yaml
+# <variable_name>: <values>

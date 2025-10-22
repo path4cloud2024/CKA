@@ -1647,7 +1647,7 @@ Service listen to a port on the Node and forward requests on that port to a port
 
         ** Mostly used Operator like Prometheus, Elastic Search, ISTIO, ArgoCD (many more)
         ** and you can write your own or already written and publihsed can be downloaded from https://operatorhub.io/
-        ** Controller can be written in Go lang, Ansible or using a Helm Chart (list 0f all yaml files)
+        ** Controller can be written in Go lang, Ansible or using a Helm Chart (list of all yaml files)
         ** GO lang support the Bootstrap (watcher or listeners) and client-go interaction with reconciliation logic of all resources liek create, delete, updated.
 
         ** we can download the Operator SDK (OLM - Operator lifecycle Manager) which will further install the Operator where we have all CR and CRDs with controller are defined.
@@ -1667,7 +1667,7 @@ Service listen to a port on the Node and forward requests on that port to a port
         - Create an Issuer 
             (check file 57-1-self-signed-issuer.yaml)
         - Create a Certificate
-            (check file 57-2-path4cloud-com-cert.yaml)
+            (check file 57-3-path4cloud-com-cert.yaml)
 
         Demo 2) Kube-Green
             that focuses on saving costs and energy by automatically managing the lifecycle of workloads in your cluster.
@@ -1684,7 +1684,7 @@ Service listen to a port on the Node and forward requests on that port to a port
         - create one more deployment to get this excluded from operator action
             # kubectl apply 0f 58-2-prod-deploy.yaml
         - create a sleep info CR
-            # kubectl apply -f 58-2-sleep-info.yaml
+            # kubectl apply -f 58-3-sleep-info.yaml
         - Now, verify the Operator action and included workloads will be scaled down or up as defined and excluded will be keep on running.
 
 
@@ -2141,6 +2141,9 @@ Service listen to a port on the Node and forward requests on that port to a port
         mychart/
         ├── Chart.yaml          # Chart metadata (name, version, description)
         ├── values.yaml         # Default configuration values
+        ├── LICENSE             # Chart LICENSE
+        ├── README.md           # Readme file
+        ├── charts/             # Dependency Charts
         └── templates/          # Kubernetes YAML templates
             ├── deployment.yaml
             ├── service.yaml
@@ -2155,8 +2158,32 @@ Service listen to a port on the Node and forward requests on that port to a port
         --> Install helm, follow the official documents:
         https://helm.sh/docs/intro/install/
 
-        
+        --> Helm uses a chart which is the collection of files and they contain all the instructions that helm needs to know to be alble to create the collection of objects which we need in our cluster. When a chart is applied, it creates a release and which is a single installation of an application using a Helm Chart. Within each release, you can have multiple revisions, and each revision is like a snapshot of the applications. 
 
+        --> We can donwload the charts from online chart repository which is publically avaialble. We just need to modify the values.yaml file as per our needs and then these values to defined variabes are automatically feeded inside the deployment or other files where it needed.
+
+        --> Helm saves all the metadata about chart information, release and other info as secret in cluster.
+
+        --> Working with Helm:
+            # helm --help (will list all the supported sub command)
+            # helm repo --help (will list all repo sub command)
+            # helm serach <chart_name>
+            # helm serach hub <chart_name> (refers to artifacthub.io)
+            # helm serach repo <chart_name> (will look a specific repo with the mentioned keywords)
+            # helm repo add <chart_name> <chart_repo_url>
+            # helm repo list (to list the repo which are added)
+            # helm repo update (to update the local copy of repo from hub)
+            # helm pull <chart_name> --untar (to download the chart Structure)
+            # helm install <app_name> <chart_name> (to install the chart from repo)
+            # helm uninstall <app_name> (to uninstall the app/chart)
+            # helm list (to list all releases)
+
+        --> Customizing the parameters in values.yaml or via command line
+            # helm install --set <variable_name>=<value> <chart_name> (will override the default values in values.yaml)
+            # helm install --values custom-values.yaml <chart_name> (if have multple variable values to be passed, create your own custom-values.yaml file and pass it via installing the chart)
+            # OR pull the chart and make changes in default values.yaml file
+
+            
 
 
 
