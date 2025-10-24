@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: validation-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: validation-webhook
+  template:
+    metadata:
+      labels:
+        app: validation-webhook
+    spec:
+      containers:
+      - name: webhook
+        image: amitaryan0010/validation-webhook:v1
+        ports:
+        - containerPort: 8443
+
+## Service
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: validation-webhook-svc
+spec:
+  selector:
+    app: validation-webhook
+  ports:
+  - port: 80
+    targetPort: 8443
