@@ -11,10 +11,10 @@ webhooks:
     resources: [ "pods" ]
   clientConfig:
     service:
-      name: my-webhook-svc
+      name: validation-webhook-svc
       namespace: default
       path: /
-    caBundle: LS0tLS1CRUdJTiBD..... # add the real key from ca-bundle.txt
+    caBundle: LS0tLS1CRUdJTiBD..... # add the real key from validate-ca-bundle.txt
   admissionReviewVersions: [ "v1" ]
   sideEffects: None
   failurePolicy: Fail

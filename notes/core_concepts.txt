@@ -1879,28 +1879,21 @@ Service listen to a port on the Node and forward requests on that port to a port
 
         Demo:
             We will deploy the webhook-server to mutate and validate using image from my dockerhub repo:
-            🧩 1️⃣ TLS Key and Cert:
-                Create the CA bundle (self-signed certificate if needed)
-                    # openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout tls.key -out tls.crt -subj "/CN=my-webhook-svc.default.svc" -addext "subjectAltName=DNS:my-webhook-svc.default.svc"
-                    # kubectl create secret tls webhook-tls-certs --cert tls.crt --key tls.key
-                    # cat tls.crt | base64 | tr -d '\n' > ca-bundle.txt
-                    (replace the real ca-bundle in 62-2-validation-webhook-configuration.yaml and 63-2-mutating-webhook-configuration.yaml file)
-                
-            🚀 2️⃣ What these image does:
+            🚀 What these image does:
                 That container image runs a small python HTTPS server that:
                     - Listens on port 8443 (as configured),
                     - Accepts AdmissionReview requests from the Kubernetes API server, and
                     - Validates and mutates Kubernetes objects (Pods) before they are created or updated.
                     - It’s will add/validate the default lable app=dev if missing
 
-            🧠 3️⃣ What the webhook actually does (behavior)
+            🧠 What the webhook actually does (behavior)
                 Usually it performs simple validation or mutation logic, such as:
                     - Logging all incoming admission requests,
                     - Optionally rejecting or modifying Pod specifications (for example, ensuring labels exist, or adding annotations),
                     - Sending back an AdmissionReview response (allowed: true/false).
                     - Essentially, it acts as a mock policy gatekeeper, showing how the admission flow works.
 
-            ⚙️ 4️⃣ What this YAML sets up
+            ⚙️ What this YAML sets up
                     | Section                                 | Purpose                                                                                                |
                     | --------------------------------------- | ------------------------------------------------------------------------------------------------------ |
                     | **Deployment**                          | Runs the webhook server (one replica).                                                                 |
@@ -1908,19 +1901,45 @@ Service listen to a port on the Node and forward requests on that port to a port
                     | **Secret volume** (`webhook-tls-certs`) | Provides TLS certificates required for secure webhook communication.                                   |
                     | **Service**                             | Exposes the webhook server internally within the cluster (Kubernetes will call this service endpoint). |
 
-            🛡️ 5️⃣ Next Action:
+            🧩 TLS Key and Cert:
+                Create the CA bundle (self-signed certificate if needed) for Validation webhook
+                    # openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout tls.key -out tls.crt -subj "/CN=validation-webhook-svc.default.svc"
+                    # kubectl create secret tls validate-webhook-tls-certs --cert tls.crt --key tls.key
+                    # cat tls.crt | base64 | tr -d '\n' > validate-ca-bundle.txt
+                    (replace the real ca-bundle in 62-2-validation-webhook-configuration.yaml)
+
                 - Once the cert and Key are created and secured as secret then deploy webhook servers as deployment
                     # kubectl create -f 62-1-validation-webhook-server.yaml
-                    # kubectl create -f 63-1-mutating-webhook-server.yaml
+                    # kubectl get pods (wait for pod to come up)
+
+                - Once webohook server is deployed, you typically also create a ValidatingWebhookConfiguration
+                    # kubectl create -f 62-2-validation-webhook-configuration.yaml
+
                 - Validating Webhook:
                     # kubectl get validatingwebhookconfigurations
-                    # kubectl get mutatingwebhookconfigurations
-                - Once webohook server is deployed, you typically also create a MutatingWebhookConfiguration or ValidatingWebhookConfiguration.
-                    # kubectl create -f 62-2-validation-webhook-configuration.yaml
-                    # kubectl create -f 63-2-mutating-webhook-configuration.yaml
-                - Create sample pod now to validate these webhooks:
+                
+                - Create sample pod now to validate the webhooks:
                     # kubectl create -f 62-3-validate-pod-demo.yaml
-                    # kubectl create -f 63-3-mutate-pod-demo.yaml
+
+            **** ONCE VALIDATION WEBHOOK DEMO IS DONE THEN ONLY FOLLOW BELOW STEPS ****
+
+                    # openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout tls.key -out tls.crt -subj "/CN=mutation-webhook-svc.default.svc"
+                    # kubectl create secret tls mutate-webhook-tls-certs --cert tls.crt --key tls.key
+                    # cat tls.crt | base64 | tr -d '\n' > mutate-ca-bundle.txt
+                    (replace the real ca-bundle in 63-2-mutating-webhook-configuration.yaml file)
+
+                - Once the cert and Key are created and secured as secret then deploy webhook servers as deployment
+                    ## kubectl create -f 63-1-mutating-webhook-server.yaml
+                    # kubectl get pods (wait for pod to come up)
+
+                - Once webohook server is deployed, you typically also create a MutatingWebhookConfiguration
+                    # kubectl create -f 63-2-mutating-webhook-configuration.yaml
+
+                - Validating Webhook:
+                    # kubectl get mutatingwebhookconfigurations
+                
+                - Create sample pod now to validate the webhooks:
+                    # kubectl create -f 63-3-mutate-pod-demo.yaml                 
 
 35) Kuberenetes Priorities:
         By default, its always high for kuberenetes cluster components which is critical to run the cluster.

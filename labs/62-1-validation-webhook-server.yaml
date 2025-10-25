@@ -6,11 +6,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app-v: validation-webhook
+      app: validation-webhook
   template:
     metadata:
       labels:
-        app-v: validation-webhook
+        app: validation-webhook
     spec:
       containers:
       - name: webhook
@@ -24,7 +24,7 @@ spec:
       volumes:
       - name: certs
         secret:
-          secretName: webhook-tls-certs
+          secretName: validate-webhook-tls-certs
 
 ## Service
 ---
@@ -32,11 +32,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-webhook-svc
+  name: validation-webhook-svc
 spec:
   selector:
-    app-v: validation-webhook
-    app-m: mutation-webhook
+    app: validation-webhook
   ports:
   - name: https
     port: 443

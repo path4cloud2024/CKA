@@ -6,11 +6,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app-m: mutation-webhook
+      app: mutation-webhook
   template:
     metadata:
       labels:
-        app-m: mutation-webhook
+        app: mutation-webhook
     spec:
       containers:
       - name: webhook
@@ -24,7 +24,20 @@ spec:
       volumes:
       - name: certs
         secret:
-          secretName: webhook-tls-certs
+          secretName: mutate-webhook-tls-certs
 
 ## Service
-# already created with validation-webhook server deployment, will use the same service.
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mutation-webhook-svc
+spec:
+  selector:
+    app: mutation-webhook
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8443
+    protocol: TCP
