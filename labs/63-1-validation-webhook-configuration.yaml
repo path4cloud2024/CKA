@@ -3,7 +3,7 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: pod-label-validation
 webhooks:
-- name: pod-label.webhook.company.com
+- name: pod-label-validate.webhook.path4cloud.com
   rules:
   - apiGroups: [ "" ]
     apiVersions: [ "v1" ]
@@ -11,10 +11,10 @@ webhooks:
     resources: [ "pods" ]
   clientConfig:
     service:
-      name: validation-webhook-svc
+      name: my-webhook-svc
       namespace: default
       path: /
-    caBundle: <BASE64_ENCODED_CA_CERT>
+    caBundle: LS0tLS1CRUdJTiBD..... # add the real key from ca-bundle.txt
   admissionReviewVersions: [ "v1" ]
   sideEffects: None
   failurePolicy: Fail

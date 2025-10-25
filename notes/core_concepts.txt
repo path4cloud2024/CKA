@@ -1878,22 +1878,23 @@ Service listen to a port on the Node and forward requests on that port to a port
 		    do not permit runAs root user (validating)
 
         Demo:
-            We will deploy the webhook-server to mutate and validate using image from StackRox (RedHat Advanced Cluster Security)
-            🧩 1️⃣ Context
-                File 62-webhook-server.yaml deploys a Kubernetes admission webhook server — specifically, a Mutating/Validating Admission Controller demo provided by StackRox (Red Hat Advanced Cluster Security).
-                # kubectl apply -f 62-webhook-server.yaml
-
-                Source: https://github.com/stackrox/admission-controller-webhook-demo/tree/main
+            We will deploy the webhook-server to mutate and validate using image from my dockerhub repo:
+            🧩 1️⃣ TLS Key and Cert:
+                Create the CA bundle (self-signed certificate if needed)
+                    # openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout tls.key -out tls.crt -subj "/CN=my-webhook-svc.default.svc" -addext "subjectAltName=DNS:my-webhook-svc.default.svc"
+                    # kubectl create secret tls webhook-tls-certs --cert tls.crt --key tls.key
+                    # cat tls.crt | base64 | tr -d '\n' > ca-bundle.txt
+                    (replace the real ca-bundle in 62-1-validation-webhook-server.yaml and 62-2-mutating-webhook-server.yaml file)
                 
-            🚀 2️⃣ What the image does (stackrox/admission-controller-demo)
-                That container image runs a small Go-based HTTPS server that:
+            🚀 2️⃣ What these image does:
+                That container image runs a small python HTTPS server that:
                     - Listens on port 8443 (as configured),
                     - Accepts AdmissionReview requests from the Kubernetes API server, and
-                    - Validates or mutates Kubernetes objects (like Pods) before they are created or updated.
-                    - It’s used to demonstrate how Kubernetes admission webhooks work — not to enforce any real policies.
+                    - Validates and mutates Kubernetes objects (Pods) before they are created or updated.
+                    - It’s will add/validate the default lable app=dev if missing
 
             🧠 3️⃣ What the webhook actually does (behavior)
-                The stackrox/admission-controller-demo image performs simple validation or mutation logic, such as:
+                Usually it performs simple validation or mutation logic, such as:
                     - Logging all incoming admission requests,
                     - Optionally rejecting or modifying Pod specifications (for example, ensuring labels exist, or adding annotations),
                     - Sending back an AdmissionReview response (allowed: true/false).
@@ -1908,18 +1909,18 @@ Service listen to a port on the Node and forward requests on that port to a port
                     | **Service**                             | Exposes the webhook server internally within the cluster (Kubernetes will call this service endpoint). |
 
             🛡️ 5️⃣ Next Action:
-                - Once webohook server is deployed, you typically also create a MutatingWebhookConfiguration or ValidatingWebhookConfiguration.
-                  Like: 63-webhook-configuration.yaml
-                - Create the CA bundle (self-signed certificate if needed)
-                    # openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout tls.key -out tls.crt -subj "/CN=webhook-server-svc.webhook-demo.svc"
-                    # kubectl create secret tls webhook-tls-certs --cert tls.crt --key tls.key
-                    # cat tls.crt | base64 | tr -d '\n' > ca-bundle.txt (replace the real ca-bundle in 63-webhook-configuration.yaml file)
-                    # kubectl apply -f 63-webhook-configuration.yaml
+                - Once the cert and Key are created and secured as secret then deploy webhook servers as deployment
+                    # kubectl create -f 62-1-validation-webhook-server.yaml
+                    # kubectl create -f 62-2-mutating-webhook-server.yaml
+                - Validating Webhook:
                     # kubectl get validatingwebhookconfigurations
                     # kubectl get mutatingwebhookconfigurations
-                
-                Now, if we deploy the pod, then that goes with Validating and Mutating.
-
+                - Once webohook server is deployed, you typically also create a MutatingWebhookConfiguration or ValidatingWebhookConfiguration.
+                    # kubectl create -f 63-1-validation-webhook-configuration.yaml
+                    # kubectl create -f 63-2-mutating-webhook-configuration.yaml
+                - Create sample pod now to validate these webhooks:
+                    # kubectl create -f 62-3-validate-pod-demo.yaml
+                    # kubectl create -f 63-3-mutate-pod-demo.yaml
 
 35) Kuberenetes Priorities:
         By default, its always high for kuberenetes cluster components which is critical to run the cluster.

@@ -1,0 +1,27 @@
+# Valid Pod: # This will be approved by the pod-label-validate.webhook.path4cloud.com
+apiVersion: v1
+kind: Pod
+metadata:
+  name: valid-pod
+  labels:
+    app: dev
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+---
+# Invalid Pod: This will be rejected by the pod-label-validate.webhook.path4cloud.com
+apiVersion: v1
+kind: Pod
+metadata:
+  name: invalid-pod
+  labels:
+    app: prod
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80

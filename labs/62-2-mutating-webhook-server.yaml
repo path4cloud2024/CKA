@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mutation-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app-m: mutation-webhook
+  template:
+    metadata:
+      labels:
+        app-m: mutation-webhook
+    spec:
+      containers:
+      - name: webhook
+        image: amitaryan0010/mutation-webhook:latest
+        ports:
+        - containerPort: 8443
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+          readOnly: true
+      volumes:
+      - name: certs
+        secret:
+          secretName: webhook-tls-certs
+
+## Service
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-webhook-svc
+spec:
+  selector:
+    app-v: validation-webhook
+    app-m: mutation-webhook
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8443
+    protocol: TCP
