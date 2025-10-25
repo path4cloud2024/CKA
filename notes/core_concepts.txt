@@ -1903,7 +1903,7 @@ Service listen to a port on the Node and forward requests on that port to a port
 
             🧩 TLS Key and Cert:
                 Create the CA bundle (self-signed certificate if needed) for Validation webhook
-                    # openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout tls.key -out tls.crt -subj "/CN=validation-webhook-svc.default.svc"
+                    # openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout tls.key -out tls.crt -subj "/CN=validation-webhook-svc.default.svc" -addext "subjectAltName=DNS:validation-webhook-svc.default.svc"
                     # kubectl create secret tls validate-webhook-tls-certs --cert tls.crt --key tls.key
                     # cat tls.crt | base64 | tr -d '\n' > validate-ca-bundle.txt
                     (replace the real ca-bundle in 62-2-validation-webhook-configuration.yaml)
@@ -1923,13 +1923,13 @@ Service listen to a port on the Node and forward requests on that port to a port
 
             **** ONCE VALIDATION WEBHOOK DEMO IS DONE THEN ONLY FOLLOW BELOW STEPS ****
 
-                    # openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout tls.key -out tls.crt -subj "/CN=mutation-webhook-svc.default.svc"
+                    # openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout tls.key -out tls.crt -subj "/CN=mutation-webhook-svc.default.svc" -addext "subjectAltName=DNS:mutation-webhook-svc.default.svc"
                     # kubectl create secret tls mutate-webhook-tls-certs --cert tls.crt --key tls.key
                     # cat tls.crt | base64 | tr -d '\n' > mutate-ca-bundle.txt
                     (replace the real ca-bundle in 63-2-mutating-webhook-configuration.yaml file)
 
                 - Once the cert and Key are created and secured as secret then deploy webhook servers as deployment
-                    ## kubectl create -f 63-1-mutating-webhook-server.yaml
+                    # kubectl create -f 63-1-mutating-webhook-server.yaml
                     # kubectl get pods (wait for pod to come up)
 
                 - Once webohook server is deployed, you typically also create a MutatingWebhookConfiguration

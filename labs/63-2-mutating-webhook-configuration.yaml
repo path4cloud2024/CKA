@@ -1,7 +1,7 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: pod-label-validation
+  name: pod-label-mutate-validation
 webhooks:
 - name: pod-label-mutate.webhook.path4cloud.com
   rules:
