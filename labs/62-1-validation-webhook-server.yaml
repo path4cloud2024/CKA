@@ -38,5 +38,7 @@ spec:
     app-v: validation-webhook
     app-m: mutation-webhook
   ports:
-  - port: 80
+  - name: https
+    port: 443
     targetPort: 8443
+    protocol: TCP

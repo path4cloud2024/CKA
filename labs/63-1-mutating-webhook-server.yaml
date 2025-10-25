@@ -27,18 +27,4 @@ spec:
           secretName: webhook-tls-certs
 
 ## Service
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: my-webhook-svc
-spec:
-  selector:
-    app-v: validation-webhook
-    app-m: mutation-webhook
-  ports:
-  - name: https
-    port: 443
-    targetPort: 8443
-    protocol: TCP
+# already created with validation-webhook server deployment, will use the same service.

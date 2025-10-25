@@ -1884,7 +1884,7 @@ Service listen to a port on the Node and forward requests on that port to a port
                     # openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout tls.key -out tls.crt -subj "/CN=my-webhook-svc.default.svc" -addext "subjectAltName=DNS:my-webhook-svc.default.svc"
                     # kubectl create secret tls webhook-tls-certs --cert tls.crt --key tls.key
                     # cat tls.crt | base64 | tr -d '\n' > ca-bundle.txt
-                    (replace the real ca-bundle in 62-1-validation-webhook-server.yaml and 63-1-mutating-webhook-server.yaml file)
+                    (replace the real ca-bundle in 62-2-validation-webhook-configuration.yaml and 63-2-mutating-webhook-configuration.yaml file)
                 
             🚀 2️⃣ What these image does:
                 That container image runs a small python HTTPS server that:
