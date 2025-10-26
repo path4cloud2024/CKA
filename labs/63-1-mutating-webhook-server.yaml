@@ -6,11 +6,13 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mutation-webhook
+      type: mutation-webhook
+      app: dev
   template:
     metadata:
       labels:
-        app: mutation-webhook
+        type: mutation-webhook
+        app: dev
     spec:
       containers:
       - name: webhook
@@ -42,7 +44,8 @@ metadata:
   name: mutation-webhook-svc
 spec:
   selector:
-    app: mutation-webhook
+    type: mutation-webhook
+    app: dev
   ports:
   - name: https
     port: 443
