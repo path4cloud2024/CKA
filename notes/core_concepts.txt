@@ -2111,18 +2111,13 @@ Service listen to a port on the Node and forward requests on that port to a port
             (use the same load-generate pod to see an action)
 
         There are four possible values for updateMode — here’s what each does:
-        | **Mode**     | **Description**                                                 When to use
-        | ------------ | ----------------------------------------------------------------| -------------------------------------------------------------------|
-        | **Off**      | VPA **only records recommendations** —                          |Use this to **observe recommendations** safely before applying them.
-        |--------------|it doesn’t update pods automatically or during restart.          |                  
-        | **Initial**  | VPA applies recommended resources **only at pod creation        | Good for workloads where you want autosized pods at startup, but 
-        |              | time** (i.e., when a pod is first scheduled). If pod already    | no runtime changes.
-        |--------------| exists, VPA won’t evict or modify it.                           |
-        | **Recreate** | VPA automatically **deletes (evicts)** pods and recreates       | Useful for stateless apps where pods can be restarted easily.
-        |              | them with updated resource requests when recommendations change.|
-        |--------------|                                                                 |
-        | **Auto**     | Same as **Recreate** (currently behaves identically).           | Default choice — fully automated resizing for most cases.           
-        |              | In future versions, may allow more advanced or hybrid updates.  |
+        | Mode                  | Description                                                                               |
+        | --------------------- | ----------------------------------------------------------------------------------------- |
+        | **Recreate**          | Deletes pods and recreates them with new resource requests.                               |
+        | **Initial**           | Sets resources **only on first creation** of a pod (no restarts).                         |
+        | **InPlaceOrRecreate** | New hybrid mode – will try **in-place update first**, otherwise recreate. *(Preferred)*   |
+        | **Off**               | No updates, only recommendations.                                                         |
+
 
         🧩 Difference Between HPA and VPA
         | Feature                 | **Horizontal Pod Autoscaler (HPA)**                                    | **Vertical Pod Autoscaler (VPA)**                                                  |

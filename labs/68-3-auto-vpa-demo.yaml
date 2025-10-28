@@ -12,4 +12,4 @@ spec:
     updateMode: "InPlaceOrRecreate" # New hybrid mode – will try in-place update first, otherwise recreate.
   resourcePolicy:
     containerPolicies:
-    - containerName: '*'
+    - containerName: 'vpa-app'
