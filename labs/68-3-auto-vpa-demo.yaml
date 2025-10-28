@@ -9,13 +9,7 @@ spec:
     kind: Deployment
     name: vpa-app
   updatePolicy:
-    updateMode: "Auto" # or "Initial", "Recreate", "off"
+    updateMode: "InPlaceOrRecreate" # New hybrid mode – will try in-place update first, otherwise recreate.
   resourcePolicy:
     containerPolicies:
     - containerName: '*'
-      mode: Auto
-      resizePolicy:
-      - resourceName: cpu
-        restartPolicy: NotRequired
-      - resourceName: memory
-        restartPolicy: RestartContainer

@@ -9,7 +9,7 @@ spec:
     kind: Deployment
     name: vpa-app
   updatePolicy:
-    updateMode: "Recreate" # or "Initial", "Auto", "off"
+    updateMode: "Recreate" # or "Initial", "InPlaceOrRecreate", "off"
   resourcePolicy:
     #its optional but we want specify the limit then we can put
     containerPolicies:
