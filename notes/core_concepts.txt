@@ -2045,10 +2045,27 @@ Service listen to a port on the Node and forward requests on that port to a port
             ** HPA depends on metrics server and continuously watching the metrics defined, it can also get the information from custom metric adapter inside from workloads and from outside source using externla adapter like datadog/dynatrace.
 
         VPA:
-            Before we jump into VPA, so far we have seen , we can edit the current pod and change the resource requests and limits but that requires a restart of pod means, pods needs to be terminated and redeployed it from temporary saved file or replace forcefully with this file which is again deleting the current pod and start it again with new resource limits, this is known as In-Place Pod Resizing and its a default behavior.
+            Before we jump into VPA, so far we have seen, we can edit the current pod and change the resource requests and limits but that requires a restart of pod means, pods needs to be terminated and redeployed it from temporary saved file or replace forcefully with this file which is again deleting the current pod and start it again with new resource limits, this is known as In-Place Pod Resizing and its a default behavior.
 
-            If we want to take a leverage of In-Place Pod Resizing without recreating it then we can enable the feature_gate flag in API server and then introduce the resizing policy in deployment.
-            Flag to set: --feature-gates=InPlacePodVerticalScaling=true
+            If we want to take a leverage of In-Place Pod Resizing without recreating it then we can enable the feature_gate flag in API server, kube-controller-manager and kube-schduler and /var/lib/kubelet/config.yaml for worker node and then introduce the resizing policy in deployment.
+            
+            Manifest files to be updated:
+            - /etc/kubernetes/manifests/kube-apiserver.yaml
+            - /etc/kubernetes/manifests/kube-controller-manager.yaml
+            - /etc/kubernetes/manifests/kube-scheduler.yaml
+            
+            Flag to set: 
+            - --feature-gates=InPlacePodVerticalScaling=true
+
+            For worker nodes (kubelet):
+            in file: /var/lib/kubelet/config.yaml
+
+            to modify:
+            featureGates:
+                InPlacePodVerticalScaling: true
+            Then reload kubelet:
+            # systemctl restart kubelet
+
 
             resizePolicy:
             - resourceName: cpu
@@ -2070,22 +2087,16 @@ Service listen to a port on the Node and forward requests on that port to a port
             | **VPA (Vertical Pod Autoscaler)**   | Scales *resources* of Pods        | Adjusts CPU/memory per Pod |
             | **In-place scaling (new)**          | Updates resource *in running Pod* | No restart or downtime     |
 
-            Now, lets look at VPA, we can donwload the manifest file and deploy it.
-            # kubectl apply -f https://github.com/kubernetes/autoscaler/releases/latest/download/vertical-pod-autoscaler.yaml 
-            # kubectl get pods -n kube-system
+            Now, lets look at VPA, we can donwload the manifest file and deploy it, all VPA Pods will start in kube-system namespace.
+            We can follow below steps to install the VPA.
+            - git clone https://github.com/kubernetes/autoscaler.git
+            - cd autoscaler/vertical-pod-autoscaler
+            - ./hack/vpa-up.sh 
+            # kubectl get pods -n kube-system | grep -i vpa
             (it will deploy admission-controller, recommender and udpater service)
             recommender: continuously monitoring the usage from metric server for live uage of pods and provides recommendation on optimal CPU and memory values.
             Updater: it evicts the current pod if recommender recommends the new values.
             Admission-Controller, it mutates the pod sepcifaction and set the recommended values while spinning up the pod again.
-
-            All VPA Pods will start in kube-system namespace.
-            We can follow below steps to install the VPA.
-            - git clone https://github.com/kubernetes/autoscaler.git
-            - cd autoscaler/vertical-pod-autoscaler
-            - ./hack/vpa-up.sh (it will create, clusterrole, binding, serviceaccount, secret, deployment and all required objects)
-            
-            - verigy the pods are running:
-            # kubectl get pods -n kube-system | grep -i vpa
 
             now we can verify the vertical api is avaialble now:
             controlplane:~/autoscaler/vertical-pod-autoscaler$ k api-resources | grep -i verti
@@ -2093,10 +2104,9 @@ Service listen to a port on the Node and forward requests on that port to a port
             verticalpodautoscalers              vpa             autoscaling.k8s.io/v1             true         VerticalPodAutoscaler
 
             Demo:
-            # kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+            # make sure, metrics server is up and running.
             # kubectl create -f 68-1-vpa-app-demo.yaml
-            # kubectl expose deployment hpa-app --port=80 --target-port=80
-            # kubectl create -f 68-vpa-config.yaml
+            # kubectl create -f 68-2-vpa-config.yaml
 
             (use the same load-generate pod to see an action)
 

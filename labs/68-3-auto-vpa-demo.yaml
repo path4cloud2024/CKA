@@ -11,11 +11,11 @@ spec:
   updatePolicy:
     updateMode: "Auto" # or "Initial", "Recreate", "off"
   resourcePolicy:
-    #its optional but we want specify the limit then we can put
     containerPolicies:
-    - containerName: '*' # or put the specific container name
-      minAllowed:
-        cpu: 100m
-      maxAllowed:
-        cpu: 250m
-      controlledResources: [ "cpu" ]
+    - containerName: '*'
+      mode: Auto
+      resizePolicy:
+      - resourceName: cpu
+        restartPolicy: NotRequired
+      - resourceName: memory
+        restartPolicy: RestartContainer
