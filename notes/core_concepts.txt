@@ -1975,14 +1975,14 @@ Service listen to a port on the Node and forward requests on that port to a port
         Horizontal Pod Autoscaling (HPA)
         Vertical Pod Autoscaling (VPA)
 
-        Usually, we have two scenario, one for Cluster Infra itseld and other is workload running on cluster.
-        - Scaling CLuster Infra 
+        Usually, we have two scenario, one for Cluster Infra itself and other is workload running on cluster.
+        - Scaling Cluster Infra 
             * Horizontal Scale (adding more nodes in cluster)
             * Vertical Scale (adding more resources like CPU or RAM in a node)
 
         - Scaling workload
             * Horizontal Scaling (adding more pods for same application)
-            * Vertical Scaling (adding more resources to allocaed resources to a single pod)
+            * Vertical Scaling (adding more resources to allocated resources to a single pod)
 
         Methods:
         - Manual Infra
@@ -2021,6 +2021,8 @@ Service listen to a port on the Node and forward requests on that port to a port
             # while true; do wget -q -O- http://hpa-svc; done (run inside the shell)
             OR
             # kubectl run -it --rm load-generator --image=busybox -- /bin/sh -c "while true; do wget -q -O- http://hpa-svc; done"
+            OR
+            # nohup kubectl run load-generator1 --image=busybox -- /bin/sh -c "while true; do wget -q -O- http://hpa-svc.default.svc.cluster.local; done" &
 
             --> Watch the hpa scale pods:
             # kubectl get hpa -w
@@ -2109,6 +2111,7 @@ Service listen to a port on the Node and forward requests on that port to a port
             # kubectl create -f 68-2-vpa-config.yaml
 
             (use the same load-generate pod to see an action)
+            # nohup kubectl run load-generator1 --image=busybox -- /bin/sh -c "while true; do wget -q -O- http://vpa-svc.default.svc.cluster.local; done" &
 
         There are four possible values for updateMode — here’s what each does:
         | Mode                  | Description                                                                               |

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: my-hpa
-        image: k8s.gcr.io/hpa-example
+        image: nginx
         ports:
         - containerPort: 80
         resources:
