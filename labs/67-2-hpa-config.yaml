@@ -16,3 +16,6 @@ spec:
       target:
         type: Utilization
         averageUtilization: 50
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 30 # defined by --horizontal-pod-autoscaler-downscale-stabilization flag (default = 5 minutes)

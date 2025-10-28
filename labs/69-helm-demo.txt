@@ -1,0 +1,38 @@
+Demo 1:
+
+heml-demo/
+│
+├── Chart.yaml
+├── values.yaml
+└── templates/
+    └── deployment.yaml
+
+- want to test without creating anythin
+# helm install --dry-run --debug myweb ./helm-demo
+
+- Install using Helm
+# helm install myweb ./helm-demo
+
+- to verify
+# helm list
+
+root@k8master:~/CKA/labs/helm-demo# helm list
+NAME    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
+myweb   default         1               2025-10-26 15:08:54.16212203 +0000 UTC  deployed        myweb-0.1.0     1.0
+
+# kubectl get all
+
+- if have a another custom file then run as
+# helm install myweb ./helm-demo -f custom-values.yaml
+
+- want to override values from CLI
+# helm install myweb ./helm-demo --set image.tag=v2 --set replicacount=3
+
+- after changes if any in yaml files then upgrade
+# helm upgrade myweb ./helm-demo
+
+- to uninstall
+# helm uninstall myweb
+
+
+

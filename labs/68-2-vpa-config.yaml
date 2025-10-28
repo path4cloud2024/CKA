@@ -1,13 +1,13 @@
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
-  name: my-app-vpa
+  name: vpa-app-auto
   namespace: default
 spec:
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: my-app-deployment
+    name: vpa-app
   updatePolicy:
     updateMode: "Auto" # or "Initial", "Recreate", "off"
   resourcePolicy:
@@ -17,6 +17,6 @@ spec:
         cpu: 100m
         memory: 128Mi
       maxAllowed:
-        cpu: 2
-        memory: 2Gi
+        cpu: 1
+        memory: 1Gi
       controlledResources: [ "cpu", "memory" ]
