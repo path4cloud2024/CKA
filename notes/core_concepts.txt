@@ -1837,7 +1837,7 @@ Service listen to a port on the Node and forward requests on that port to a port
 		to list all the enabled admission controller run:
 		# kube-apiserver -h | grep enable-admission-plugins
 		OR
-		# kubectl exec kube-apiserver -n kube-system -- kube-apiserver -h | grep enable-admission-plugins
+		# kubectl exec kube-apiserver-k8master -n kube-system -- kube-apiserver -h | grep enable-admission-plugins
 				
 		If we want to enable any AC which are not enabled, then add it in service file or kube-apiserver manifest file:
 		- --enable-admission-plugins=NamespaceAutoProvision,NodeRestriction
@@ -2018,13 +2018,29 @@ Service listen to a port on the Node and forward requests on that port to a port
             --> generate CPU load now:
             - Run a busybox Pod to hit your nginx server continuously:
             # kubectl run -i --tty load-generator --image=busybox /bin/sh
-            # while true; do wget -q -O- http://nginx-deployment.default.svc.cluster.local; done (run inside the shell)
+            # while true; do wget -q -O- http://hpa-svc; done (run inside the shell)
+            OR
+            # kubectl run -it --rm load-generator --image=busybox -- /bin/sh -c "while true; do wget -q -O- http://hpa-svc; done"
+
             --> Watch the hpa scale pods:
             # kubectl get hpa -w
 
             Now, stop the loads:
             # kubectl delete pod load-generator
             --> After a few minutes, HPA will scale back down to 1 pod.
+            By default:
+                - Scale-up happens quickly (within ~15 seconds).
+                - Scale-down happens slowly — only after 5 minutes of sustained low CPU.
+                - This behavior is defined by:
+                        --horizontal-pod-autoscaler-downscale-stabilization flag (default = 5 minutes)
+                - This means HPA waits 5 minutes of stable low usage before removing pods.
+                - You can confirm this by running:
+                # kubectl get hpa hpa-app-auto -o yaml (You’ll see timestamps under status.conditions showing when it last scaled.)
+            If you want faster downscaling:
+            behavior:
+                scaleDown:
+                stabilizationWindowSeconds: 30
+
 
             ** HPA depends on metrics server and continuously watching the metrics defined, it can also get the information from custom metric adapter inside from workloads and from outside source using externla adapter like datadog/dynatrace.
 
@@ -2047,16 +2063,12 @@ Service listen to a port on the Node and forward requests on that port to a port
             - A container's memory limit can't be set below its current usage
             - windows pods cannot be resized
 
-
-
-
             🧠 Horizontal vs. Vertical Scaling
             | Feature                             | Type                              | Effect                     |
             | ----------------------------------- | --------------------------------- | -------------------------- |
             | **HPA (Horizontal Pod Autoscaler)** | Scales *number* of Pods           | Adjusts replicas (1 → N)   |
             | **VPA (Vertical Pod Autoscaler)**   | Scales *resources* of Pods        | Adjusts CPU/memory per Pod |
             | **In-place scaling (new)**          | Updates resource *in running Pod* | No restart or downtime     |
-
 
             Now, lets look at VPA, we can donwload the manifest file and deploy it.
             # kubectl apply -f https://github.com/kubernetes/autoscaler/releases/latest/download/vertical-pod-autoscaler.yaml 
@@ -2080,10 +2092,9 @@ Service listen to a port on the Node and forward requests on that port to a port
             verticalpodautoscalercheckpoints    vpacheckpoint   autoscaling.k8s.io/v1             true         VerticalPodAutoscalerCheckpoint
             verticalpodautoscalers              vpa             autoscaling.k8s.io/v1             true         VerticalPodAutoscaler
 
-
             Demo:
             # kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-            # kubectl create -f 67-1-hpa-app-demo.yaml
+            # kubectl create -f 68-1-vpa-app-demo.yaml
             # kubectl expose deployment hpa-app --port=80 --target-port=80
             # kubectl create -f 68-vpa-config.yaml
 
@@ -2194,7 +2205,7 @@ Service listen to a port on the Node and forward requests on that port to a port
 
         --> Install helm, follow the official documents:
         https://helm.sh/docs/intro/install/
-
+ 
         --> Helm uses a chart which is the collection of files and they contain all the instructions that helm needs to know to be alble to create the collection of objects which we need in our cluster. When a chart is applied, it creates a release and which is a single installation of an application using a Helm Chart. Within each release, you can have multiple revisions, and each revision is like a snapshot of the applications. 
 
         --> We can donwload the charts from online chart repository which is publically avaialble. We just need to modify the values.yaml file as per our needs and then these values to defined variabes are automatically feeded inside the deployment or other files where it needed.
@@ -2212,6 +2223,7 @@ Service listen to a port on the Node and forward requests on that port to a port
             # helm repo update (to update the local copy of repo from hub)
             # helm pull <chart_name> --untar (to download the chart Structure)
             # helm install <app_name> <chart_name> (to install the chart from repo)
+            # helm install <app_name> <chart_name> --version <version_of_chart>
             # helm uninstall <app_name> (to uninstall the app/chart)
             # helm list (to list all releases)
 
@@ -2220,7 +2232,64 @@ Service listen to a port on the Node and forward requests on that port to a port
             # helm install --values custom-values.yaml <chart_name> (if have multple variable values to be passed, create your own custom-values.yaml file and pass it via installing the chart)
             # OR pull the chart and make changes in default values.yaml file
 
+        --> Lifecycle management with Helm
+            once install the any chart then we can upgrade it easiy with helm upgrade command and it will create a release 2 for this.
+            # helm install <app_name> <chart_name>
+            # helm uprgade <app_name>
+            # helm list
+            # helm history <app_name> (to see all the history or lifecycle of that release)
+            # helm rollback <app_name> <release_version> (to rollback the release to mentioned previous verison)
+            ** Helm just rollback the manifest and its object to its previous state but not the actual data present at DB or file system, we do have another way to achieve that but with simple rollback, its not possible.
+            e.g.
+            # helm install myweb ./helm-demo --set image.tag=1.19.2
+            # helm upgrade myweb ./helm-demo/ --set image.tag=latest
+            # helm list
+            NAME    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
+            myweb   default         2               2025-10-27 16:51:27.46605993 +0000 UTC  deployed        myweb-0.1.0     1.0 
+
+            # helm history myweb
+            REVISION        UPDATED                         STATUS          CHART           APP VERSION     DESCRIPTION
+            1               Mon Oct 27 16:48:08 2025        superseded      myweb-0.1.0     1.0             Install complete
+            2               Mon Oct 27 16:51:27 2025        deployed        myweb-0.1.0     1.0             Upgrade complete
+
+            #  helm rollback myweb 1
+            Rollback was a success! Happy Helming!
+            # helm history myweb
+            REVISION        UPDATED                         STATUS          CHART           APP VERSION     DESCRIPTION
+            1               Mon Oct 27 16:48:08 2025        superseded      myweb-0.1.0     1.0             Install complete
+            2               Mon Oct 27 16:51:27 2025        superseded      myweb-0.1.0     1.0             Upgrade complete
+            3               Mon Oct 27 16:53:37 2025        deployed        myweb-0.1.0     1.0             Rollback to 1
+
+        --> Deep Dive into Helm Chart
+            * Wrinting Charts
+            * Templating
+            * functions 
+            * Chart Hooks
+            * Chart Tests
+            * Provenance
+
+            a) Writing are our own chart:
+            - either create the all required yaml file and put them in directory structure (discuused above)
+            - or we can create it default with below command then modify them:
+                # helm create <app_name>/<chart_name>
+                which will come with Chart.yaml, templates dir, values.yaml and chart directory
+
+                In this, Chart.yaml file comes with some default values, like:
+                apiVersion: v2
+                name: demo-chart
+                description: A Helm chart for Kubernetes
+                type: application
+                version: 0.1.0
+                appVersion: "1.16.0"
+
+
+                in deployment files, we can use Templating:
+                {{ .Release.Name }}-app        
+
             
+
+
+                         
 
 
 

@@ -54,5 +54,9 @@ kubectl apply -f https://reweave.azurewebsites.net/k8s/v1.29/net.yaml
 #kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.0/manifests/calico.yaml
 
 kubectl get pods -n kube-system
+echo "swapoff -a" >> ~/.bashrc
+echo "source <(kubectl completion bash)" >> ~/.bashrc
+echo "alias k=kubectl" >> ~/.bashrc
+echo "complete -F __start_kubectl k" >> ~/.bashrc
 
 kubeadm token create --print-join-command
