@@ -9,13 +9,13 @@ spec:
     kind: Deployment
     name: vpa-app
   updatePolicy:
-    updateMode: "Auto" # or "Initial", "Recreate", "off"
+    updateMode: "Recreate" # or "Initial", "Auto", "off"
   resourcePolicy:
     #its optional but we want specify the limit then we can put
     containerPolicies:
     - containerName: '*' # or put the specific container name
       minAllowed:
-        cpu: 100m
+        cpu: 20m
       maxAllowed:
-        cpu: 250m
+        cpu: 200m
       controlledResources: [ "cpu" ]
