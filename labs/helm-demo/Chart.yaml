@@ -3,3 +3,6 @@ name: myweb
 description: A Helm chart for my web nginx application
 version: 0.1.0
 appVersion: "1.0"
+maintainers:
+- name: Path4Cloud
+  email: support@path4cloud.com

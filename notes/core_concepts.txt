@@ -2200,7 +2200,7 @@ Service listen to a port on the Node and forward requests on that port to a port
         ├── LICENSE             # Chart LICENSE
         ├── README.md           # Readme file
         ├── charts/             # Dependency Charts
-        └── templates/          # Kubernetes YAML templates
+        └── templates/          # Kubernetes YAML templates for all manifest files
             ├── deployment.yaml
             ├── service.yaml
             └── ingress.yaml

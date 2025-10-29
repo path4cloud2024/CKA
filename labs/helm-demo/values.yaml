@@ -1,7 +1,7 @@
 replicaCount: 2
 image:
   repository: nginx
-  tag: latest
+  tag: 1.22
 org_env: test
 Service:
   exposed: true
