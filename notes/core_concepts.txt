@@ -2395,7 +2395,24 @@ Service listen to a port on the Node and forward requests on that port to a port
                   labels:
                     {{ include "app.labels" . }}
 
-                ✅ Most Common Helm Functions Used Daily
+                ✅ What is a with block?
+                with lets you change the context (.) inside a block so you don’t have to repeat a long path like:
+                .Values.image.repository
+                .Values.image.tag
+                .Values.image.pullPolicy
+
+                Inside a with, the dot (.) becomes that object.
+                (refer 69-3-helm-range-funcions.txt)
+
+                ✅ What is a Range Function?
+                range is a Helm function used to loop over lists, arrays, maps, or dictionaries in values.yaml
+                (refer 69-2-helm-range-funcions.txt)
+
+                ✅ What Are Named Templates in Helm?
+                Named templates in Helm are reusable code blocks that you define once (usually in _helpers.tpl) and call multiple times across your chart.
+                (refer 69-4-helm-range-funcions.txt)
+
+            ✅ Most Common Helm Functions Used Daily
                 | Function   | Purpose                            |
                 | ---------- | ---------------------------------- |
                 | `default`  | Provide fallback values            |
@@ -2406,10 +2423,46 @@ Service listen to a port on the Node and forward requests on that port to a port
                 | `lookup`   | Check existing K8s resources       |
                 | `required` | Stop installation if value missing |
 
+            d) chart hooks:
+                Helm hooks allow you to run Kubernetes resources at specific points in the release lifecycle.
+                They are extremely useful for running database migrations, pre-install checks, jobs, cleanup tasks, etc.
+                Example: Run a job to create a DB schema before the Deployment or Upgrade is created.
+                (refer 69-5-helm-hooks.txt)
 
+            e) hart Provenance = chart signing + integrity verification
+                We can create the chart, package it and push it to artifacthub.io and make it available for other users.
+                Once created and then we can package with:
+                    # helm package <chart_name> (will save the paclage in <chart_name>.tgz format)
+                But we need to sign it before we make it publish using keys and provenance file.
+                What Is Chart Provenance?
+                “Chart provenance” refers to:
+                    ✅ verifying a Helm chart’s authenticity
+                    ✅ ensuring it was not tampered with
+                    ✅ confirming it was created by the claimed publisher
+                Provenance uses:
+                    signed chart packages (.tgz)
+                    provenance files (.prov)
+                    GPG keys
+                    ** It’s similar to how packages are signed in apt/yum.         
+                    When you package a chart with signing:
+                    # gpg --quick-geneate-key "<GPG_KEY_NAME>"
+                    OR
+                    # gpg --full-generate-key "<GPG_KEY_NAME>"
+                    # gpg --export-secret-keys > ~/.gnupg/secring.gpg
+                    # helm package --sign --key "<GPG_KEY_NAME>" --keyring ~/.gnupg/secring.gpg ./<chart_name>
+                    # gpg --list--keys
+                -- Now, after siging it with keys, it has generated a file ending with .prov which has a SHA value which must match with chart.tgz file
+                    # sha256sum chart.tgz == # ls chart.tgz.prov
 
+                    Now, to verify:
+                    # helm verify ./chart_name.tgz
+                    # gpg --export "<GPG_KEY_NAME" > public_key
+                    # helm install --verify <chart_name>
 
-            
+                -- Uploading charts:
+                    create a index.html file which has informatino about urls, generation date, and other metadata.
+
+                    # helm repo index <chart_dir> --url <repo_url>
 
 
                          

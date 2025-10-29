@@ -12,7 +12,7 @@ spec:
     metadata:
       labels:
         app: myweb
-      {{- if .Values.org_env }}
+      {{- if .Values.org_env }} # lable will be set only if its defined in values.yaml file
         org_env: {{ .Values.org_env }}
       {{- end }}
     spec:
@@ -21,6 +21,21 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         ports:
         - containerPort: 80
+        # with block examples
+        resources:
+        {{- with .Values.resources.requests }}
+          requests:
+            cpu: {{ .cpu }}
+            memeory: {{ .memory}}
+        {{- end }}
+        # if inside a with block we need to set the root path from values.yaml which are not inside block then we can set as:
+        # {{ $.Release.Name }}
+        {{- with .Values.resources.limits }}
+          limits:
+            cpu: {{ .cpu }}
+            memeory: {{ .memory}}
+        {{- end }}
+
 ---
 # expose service if set to true in values.yaml file
 {{- if .Values.Service.exposed }}
@@ -37,4 +52,4 @@ spec:
       name: http
   selector:
     app: {{ .Release.Name}}-app
-{{- else }}
+{{- end }}

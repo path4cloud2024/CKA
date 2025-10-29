@@ -1,0 +1,25 @@
+Named templates in Helm are reusable code blocks that you define once (usually in _helpers.tpl) and call multiple times across your chart.
+
+They let you avoid repetition and keep your templates clean.
+
+✅ Where Do We Define Them?
+
+Always inside:
+charts/mychart/templates/_helpers.tpl
+
+Example: Standard Labels Template
+✅ _helpers.tpl
+{{- define "mychart.labels" -}}
+app.kubernetes.io/name: {{ .Chart.Name }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/version: {{ .Chart.Version }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+✅ deployment.yaml
+metadata:
+  labels:
+    {{- include "mychart.labels" . | nindent 4 }}
+
+This injects all labels properly indented.
+

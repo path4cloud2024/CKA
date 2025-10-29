@@ -1,0 +1,116 @@
+✅ Why Hooks Exist
+Because sometimes you need tasks that:
+
+✅ run before installing the main resources
+✅ run after an upgrade
+✅ run only once
+✅ clean themselves automatically
+
+Examples:
+Run a job to create a DB schema before the Deployment is created
+Run a cleanup job before uninstalling
+Run tests after installing
+
+✅ Common Hook Types (Most Important)
+| Hook Name         | When does it run?                  |
+| ----------------- | ---------------------------------- |
+| **pre-install**   | Before any resources are installed |
+| **post-install**  | After all resources are installed  |
+| **pre-upgrade**   | Before upgrade starts              |
+| **post-upgrade**  | After upgrade completes            |
+| **pre-delete**    | Before chart uninstall             |
+| **post-delete**   | After uninstall completes          |
+| **pre-rollback**  | Before rollback                    |
+| **post-rollback** | After rollback                     |
+| **test**          | For `helm test` command            |
+
+✅ Hook Weights
+If multiple hooks run at the same time, you can control order:
+
+annotations:
+  "helm.sh/hook-weight": "1"
+
+Lower weight = runs earlier.
+
+✅ Hook Delete Policies
+Controls what happens AFTER hook success/failure:
+
+annotations:
+  "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+
+
+Common ones:
+hook-succeeded → delete after success
+before-hook-creation → delete old hook resources before running new ones
+
+✅ Practical Example — pre-install Job
+
+✅ Typical use-case: DB migrations before the app Deployments
+
+templates/hooks/db-migrate-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}-db-migrate"
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: alpine
+          command: ["sh", "-c", "echo Running DB migration..."]
+
+✅ Example — post-install Hook
+metadata:
+  name: notify-success
+  annotations:
+    "helm.sh/hook": post-install
+spec:
+  template:
+    spec:
+      containers:
+      - name: notify
+        image: busybox
+        command: ["sh", "-c", "echo Installation finished!"]
+
+✅ Example — pre-delete Cleanup
+metadata:
+  annotations:
+    "helm.sh/hook": pre-delete
+spec:
+  template:
+    spec:
+      containers:
+      - name: cleanup
+        image: busybox
+        command: ["sh", "-c", "echo Cleaning resources..."]
+
+✅ Helm Test Hook Example
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test"
+  annotations:
+    "helm.sh/hook": test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test
+      image: busybox
+      command: ["sh", "-c", "wget http://my-service:80"]
+
+
+Run it: helm test <release-name>
+
+
+✅ Best Practices for Helm Hooks
+    ✅ Use hooks for one-time tasks, not long-running pods
+    ✅ Always use delete policies — prevent orphaned resources
+    ✅ Use weights when multiple hooks run
+    ✅ Prefer Jobs (they exit when done)
+    ✅ Never put Deployments as hooks

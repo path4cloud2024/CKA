@@ -1,0 +1,164 @@
+with block?
+
+with lets you change the context (.) inside a block so you don’t have to repeat a long path like:
+
+.Values.image.repository
+.Values.image.tag
+.Values.image.pullPolicy
+
+
+Inside a with, the dot (.) becomes that object.
+
+✅ Example 1 — Simple with for image values
+
+values.yaml
+
+image:
+  repository: nginx
+  tag: "1.25"
+  pullPolicy: IfNotPresent
+
+
+deployment.yaml
+
+containers:
+  - name: myapp
+    {{- with .Values.image }}
+    image: "{{ .repository }}:{{ .tag }}"
+    imagePullPolicy: {{ .pullPolicy }}
+    {{- end }}
+
+
+✅ Simplifies many .Values.image.* to .
+✅ Produces:
+
+image: "nginx:1.25"
+imagePullPolicy: IfNotPresent
+
+✅ Example 2 — Using with for metadata (labels/annotations)
+
+values.yaml
+
+podAnnotations:
+  owner: mayank
+  team: devops
+
+
+template
+
+metadata:
+  labels:
+    app: demo
+  {{- with .Values.podAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+
+✅ Only renders annotations if they exist
+✅ Converts YAML nicely using toYaml
+
+✅ Example 3 — Optional configuration (with avoids nil errors)
+
+Suppose the values file optionally contains a sidecar.
+
+values.yaml
+
+sidecar:
+  enabled: true
+  image: busybox
+
+
+template
+
+{{- with .Values.sidecar }}
+{{- if .enabled }}
+- name: sidecar
+  image: {{ .image }}
+{{- end }}
+{{- end }}
+
+
+✅ with protects against .Values.sidecar being nil
+✅ And inside the block . = sidecar
+
+✅ Example 4 — with for environment variables
+
+values.yaml
+
+env:
+  LOG_LEVEL: debug
+  MODE: production
+
+
+template
+
+{{- with .Values.env }}
+env:
+{{- range $key, $val := . }}
+  - name: {{ $key }}
+    value: "{{ $val }}"
+{{- end }}
+{{- end }}
+
+
+✅ Clean loop inside a scoped object
+✅ Produces:
+
+env:
+  - name: LOG_LEVEL
+    value: "debug"
+  - name: MODE
+    value: "production"
+
+✅ Example 5 — with + include (advanced but common)
+
+_helpers.tpl
+
+{{- define "myapp.fullname" -}}
+{{ .Release.Name }}-{{ .Chart.Name }}
+{{- end }}
+
+
+deployment.yaml
+
+metadata:
+  name: {{ include "myapp.fullname" . }}
+  {{- with .Values.labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+
+✅ Allows labels to be optional
+✅ Keeps things clean
+
+✅ Example 6 — Nested with blocks (DO NOT overuse, but useful)
+
+values.yaml
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
+
+
+template
+
+resources:
+  {{- with .Values.resources.requests }}
+  requests:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.resources.limits }}
+  limits:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+
+✅ Each block changes context independently
+✅ Avoids repeating .Values.resources.requests.*

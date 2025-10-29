@@ -6,5 +6,13 @@ org_env: test
 Service:
   exposed: true
 
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
+
 # if need to create the custom-values.yaml
 # <variable_name>: <values>

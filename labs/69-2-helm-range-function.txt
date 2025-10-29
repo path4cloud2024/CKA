@@ -1,0 +1,159 @@
+Think of it like a for loop in Helm templating.
+
+✅ 1. Looping Over a List (ARRAY)
+✅ values.yaml
+hosts:
+  - app1.example.com
+  - app2.example.com
+  - app3.example.com
+
+✅ template
+spec:
+  rules:
+{{- range .Values.hosts }}
+    - host: {{ . }}
+{{- end }}
+
+✅ rendered output
+spec:
+  rules:
+    - host: app1.example.com
+    - host: app2.example.com
+    - host: app3.example.com
+
+✅ 2. Looping Over a Map (KEY → VALUE)
+✅ values.yaml
+labels:
+  env: prod
+  region: us-east
+  app: web
+
+✅ template
+metadata:
+  labels:
+{{- range $key, $value := .Values.labels }}
+    {{ $key }}: {{ $value }}
+{{- end }}
+
+✅ rendered output
+metadata:
+  labels:
+    env: prod
+    region: us-east
+    app: web
+
+✅ 3. Looping Over Container Ports
+✅ values.yaml
+ports:
+  - name: http
+    containerPort: 80
+  - name: metrics
+    containerPort: 9090
+
+✅ template
+ports:
+{{- range .Values.ports }}
+  - name: {{ .name }}
+    containerPort: {{ .containerPort }}
+{{- end }}
+
+✅ rendered output
+ports:
+  - name: http
+    containerPort: 80
+  - name: metrics
+    containerPort: 9090
+
+✅ 4. Loop Over a List to Create Multiple ENV VARIABLES
+✅ values.yaml
+envVars:
+  - name: LOG_LEVEL
+    value: debug
+  - name: APP_MODE
+    value: production
+
+✅ template
+env:
+{{- range .Values.envVars }}
+  - name: {{ .name }}
+    value: "{{ .value }}"
+{{- end }}
+
+✅ 5. Loop Over Items With Index
+✅ values.yaml
+servers:
+  - server1
+  - server2
+
+✅ template
+servers:
+{{- range $index, $srv := .Values.servers }}
+  - index: {{ $index }}
+    name: {{ $srv }}
+{{- end }}
+
+✅ rendered output
+servers:
+  - index: 0
+    name: server1
+  - index: 1
+    name: server2
+
+✅ 6. Loop Over Secrets or Config Data
+✅ values.yaml
+config:
+  APP_COLOR: blue
+  APP_TIMEOUT: "30"
+
+✅ template
+data:
+{{- range $k, $v := .Values.config }}
+  {{ $k }}: "{{ $v }}"
+{{- end }}
+
+✅ 7. Loop to Create Multiple Deployments
+✅ values.yaml
+apps:
+  - name: frontend
+    image: nginx
+  - name: backend
+    image: busybox
+
+✅ template
+{{- range .Values.apps }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .name }}
+    spec:
+      containers:
+      - name: {{ .name }}
+        image: {{ .image }}
+{{- end }}
+
+
+This will generate multiple Deployments.
+
+✅ 8. Loop + with (range inside a with block)
+✅ values.yaml
+service:
+  ports:
+    - 80
+    - 443
+
+✅ template
+{{- with .Values.service }}
+ports:
+{{- range .ports }}
+  - port: {{ . }}
+{{- end }}
+{{- end }}
