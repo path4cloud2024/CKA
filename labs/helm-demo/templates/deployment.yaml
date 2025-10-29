@@ -10,11 +10,11 @@ spec:
       app: {{ .Release.Name }}
   template:
     metadata:
-      {{- if .Values.org_env }}
       labels:
         app: myweb
+      {{- if .Values.org_env }}
         org_env: {{ .Values.org_env }}
-      {{ -end }}
+      {{- end }}
     spec:
       containers:
       - name: {{ .Chart.Name }}
@@ -22,7 +22,8 @@ spec:
         ports:
         - containerPort: 80
 ---
-# service
+# expose service if set to true in values.yaml file
+{{- if .Values.Service.exposed }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -36,3 +37,4 @@ spec:
       name: http
   selector:
     app: {{ .Release.Name}}-app
+{{- else }}

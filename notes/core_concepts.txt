@@ -2370,7 +2370,7 @@ Service listen to a port on the Node and forward requests on that port to a port
                     org_env: {{ .Values.org_env }} --> If this value is defined in values.yaml then it will parse else not
                 {{ end }}
     
-                Common funcions: eq, ne, lt, gt, and, or, not
+                Common funcions: eq, ne, lt, gt, and, or, not, empty
 
                 ✅ 7. Path / Lookup Functions
                 These are Helm-specific.

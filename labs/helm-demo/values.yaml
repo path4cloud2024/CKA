@@ -3,6 +3,8 @@ image:
   repository: nginx
   tag: latest
 org_env: test
+Service:
+  exposed: true
 
 # if need to create the custom-values.yaml
 # <variable_name>: <values>
