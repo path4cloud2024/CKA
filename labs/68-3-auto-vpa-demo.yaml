@@ -1,7 +1,7 @@
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
-  name: vpa-app-auto
+  name: vpa-app-auto-new
   namespace: default
 spec:
   targetRef:

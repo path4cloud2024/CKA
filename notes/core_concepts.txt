@@ -2277,12 +2277,12 @@ Service listen to a port on the Node and forward requests on that port to a port
             * Provenance
 
             a) Writing are our own chart:
-            - either create the all required yaml file and put them in directory structure (discuused above)
+            - either create the all required yaml file and put them in directory structure (discussed above)
             - or we can create it default with below command then modify them:
                 # helm create <app_name>/<chart_name>
                 which will come with Chart.yaml, templates dir, values.yaml and chart directory
 
-                In this, Chart.yaml file comes with some default values, like:
+            - In this, Chart.yaml file comes with some default values, like:
                 apiVersion: v2
                 name: demo-chart
                 description: A Helm chart for Kubernetes
@@ -2290,9 +2290,124 @@ Service listen to a port on the Node and forward requests on that port to a port
                 version: 0.1.0
                 appVersion: "1.16.0"
 
+            b) Templating:
+            - In deployment files, we can use Templating: 
+                {{ .Release.Name }}-app 
+                {{ .Release.Namespace }}       
+                {{ .Release.Service }}
+                {{ .Chart.Name }}
+                {{ .Chanrt.Type }}
+                {{ .Capabilities.KubeVersion }}
+                {{ .Capabilities.HelmVersion }}
+                {{ Values.replicaCount }}
 
-                in deployment files, we can use Templating:
-                {{ .Release.Name }}-app        
+            --> We can pass these values in cli using --set flag or we can set in values.yaml file under chart directory.
+
+            -- refer helm_demo chart
+
+            -- once create now, verifying the chart:
+            # helm lint <chart_name> (to check the yaml sytax for all yaml files)
+            # helm template <chart_name> (to check the templating , this command renders all the values from vlaues.yaml and show how templating will fit the values.)
+                # helm template <release_name> <chart_name> (without release name, it will not render the release name and put the default name RELASE-NAME)
+                # helm template <chart_name> --debug (if any yaml files has issue then it will print that file and we can easily identify the issue and fix it)
+            
+
+            # helm install <chart_name> --dry-run (it will list or show all the change which it will gonna perform and if any Kubernetes related syntax or misspelled object or property name then it will highlight that)
+
+            c) Functions:
+                Helm functions are built-in templating helpers that you can use inside your Helm chart templates (YAML files under templates/). They allow you to manipulate strings, convert data types, format values, loop, check conditions, and more.
+                
+                ✅ Simple Definition
+                Helm functions are pre-built helpers that let you transform, compute, or format data inside Helm templates.
+                They are used with the pipe (|) syntax, like in Linux commands.
+                Example:
+                {{ .Release.Name | upper }} (This converts the Release name into uppercase using the upper function.)
+
+                ✅ Major Categories of Helm Functions
+                ✅ 1. String Functions:  Used to modify text.
+                Examples:
+                {{ "hello" | upper }}     # "HELLO"
+                {{ "MAYANK" | lower }}    # "mayank"
+                {{ "api" | title }}       # "Api"
+                {{ "nginx" | quote }}     # "nginx"
+
+                Common string functions: upper, lower. title, trim, repeat, quote, contains, replace
+
+                ✅ 2. List & Array Functions
+                Work with lists/arrays.
+                {{ list "a" "b" "c" }}  # ["a","b","c"]
+                {{ append (list 1 2) 3 }} # [1,2,3]
+
+                Common list & Array functions: list, append, concat, uniq
+
+                ✅ 3. Math Functions
+                Used for simple arithmetic operations.
+                {{ add 2 3 }}    # 5
+                {{ div 10 2 }}   # 5
+
+                Common math functions: add, sub, mul, div, mod
+
+                ✅ 4. Type Conversion Functions             
+                Convert values between types.
+                {{ int "10" }}     # 10
+                {{ float "3.14" }} # 3.14
+
+                Common conversion functions: int, float, toString, toJson
+
+                ✅ 5. Defaulting Functions
+                Provide fallback values if something is empty.
+                {{ .Values.replicas | default 2 }} (Very commonly used in Helm charts.)
+
+                ✅ 6. Flow Control Helpers
+                Used with conditions, loops, and logical operators.
+                Examples:
+                {{ if eq .Values.env "dev" }}
+                {{ else if eq .Values.env "prod" }}
+                {{ end }}
+                OR
+                {{ if .Values.org_env }}
+                lables:
+                    org_env: {{ .Values.org_env }} --> If this value is defined in values.yaml then it will parse else not
+                {{ end }}
+    
+                Common funcions: eq, ne, lt, gt, and, or, not
+
+                ✅ 7. Path / Lookup Functions
+                These are Helm-specific.
+                lookup() — one of the most powerful functions
+                (Allows templates to fetch values from the Kubernetes cluster during template rendering.)
+                Example:
+                {{- $cm := lookup "v1" "ConfigMap" "default" "my-config" -}}
+
+                ✅ 8. File Functions
+                Used to read files inside a chart.
+                {{ .Files.Get "config/app.properties" }}
+
+                Common file functions: .Files.Get, .Files.GetBytes, .Files.Glob, .Files.AsSecrets
+
+                ✅ 9. Template Helpers (Define / Include)
+                Used to create reusable snippets.
+                {{ define "app.labels" }}
+                app: my_app
+                {{ end }}
+
+                metadata:
+                  labels:
+                    {{ include "app.labels" . }}
+
+                ✅ Most Common Helm Functions Used Daily
+                | Function   | Purpose                            |
+                | ---------- | ---------------------------------- |
+                | `default`  | Provide fallback values            |
+                | `include`  | Reuse template blocks              |
+                | `quote`    | Add quotes around a value          |
+                | `toYaml`   | Convert a map into YAML            |
+                | `nindent`  | Indent properly for YAML           |
+                | `lookup`   | Check existing K8s resources       |
+                | `required` | Stop installation if value missing |
+
+
+
 
             
 

@@ -10,8 +10,11 @@ spec:
       app: {{ .Release.Name }}
   template:
     metadata:
+      {{- if .Values.org_env }}
       labels:
-        app: {{ .Release.Name }}
+        app: myweb
+        org_env: {{ .Values.org_env }}
+      {{ -end }}
     spec:
       containers:
       - name: {{ .Chart.Name }}
