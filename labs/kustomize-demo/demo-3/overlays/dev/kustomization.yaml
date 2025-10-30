@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../base
+
+labels:
+- includeSelectors: true #false if don't want to apply to selectors
+  pairs:
+    team: path4Cloud
+
+nameSuffix: -dev
+namePrefix: app1-
+
+images:
+- name: nginx # Will look for container with image name nginx
+  newName: nginx
+  newTag: "latest"
+
+namespace: dev
+
+replicas:
+- name: kustomize-app
+  count: 1
+
+patches:
+- target:
+    kind: Deployment
+    name: kustomize-app
+  patch: |- #inline patches
+    - op: add
+      path: /spec/template/metadata/labels/env
+      value: dev
+    - op: replace
+      path: /spec/template/spec/containers/0/name
+      value: web-app
+        #   - op: remove
+        #path: /spec/template/spec/containers/0/resources
+
+- target:
+    kind: Service
+    name: kustomize-app
+  path: service-type-patch.yaml

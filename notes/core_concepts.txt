@@ -2144,7 +2144,7 @@ Service listen to a port on the Node and forward requests on that port to a port
         | API service that spikes during peak hours          | ✅ Adds more pods during high traffic | ⚙️ Helps tune each pod's size     
 
 37) Helm
-        it is the package manager for kubernetes and works like a intall and unintall wizard. Helm helps you to install, upgrade, and manage complex kubernetes applications easuly using pre-built packages called Help Chart.
+        it is the package manager for kubernetes and works like a intall and unintall wizard. Helm helps you to install, upgrade, and manage complex kubernetes applications easily using pre-built packages called Help Chart.
         📦 What Is a Helm Chart
 
             A Helm Chart is a bundle of YAML templates that define:
@@ -2306,7 +2306,7 @@ Service listen to a port on the Node and forward requests on that port to a port
             -- refer helm_demo chart
 
             -- once create now, verifying the chart:
-            # helm lint <chart_name> (to check the yaml sytax for all yaml files)
+            # helm lint <chart_name> (to check the yaml syntax for all yaml files)
             # helm template <chart_name> (to check the templating , this command renders all the values from vlaues.yaml and show how templating will fit the values.)
                 # helm template <release_name> <chart_name> (without release name, it will not render the release name and put the default name RELASE-NAME)
                 # helm template <chart_name> --debug (if any yaml files has issue then it will print that file and we can easily identify the issue and fix it)
@@ -2464,8 +2464,156 @@ Service listen to a port on the Node and forward requests on that port to a port
 
                     # helm repo index <chart_dir> --url <repo_url>
 
+38) Kustomize
+        Kustomize is a Kubernetes-native configuration management tool that lets you customize YAML without copying or modifying the original manifests.
+        - It is built into kubectl
+        - Works with pure YAML (no templating language like Helm)
+        - Overlays + patches allow safe customization
+        
+        ✅ 1. Why Kustomize Exists
+        - Managing multiple YAML files in Kubernetes is hard because:
+            - Duplicating YAML leads to errors
+            - Dev, QA, and Prod need different configs
+            - You don't want to edit vendor or base manifests manually
+        Kustomize solves this with:
+            - Bases (original manifests)
+            - Overlays (environment-specific changes)
+            - Patches (only override what you need)
 
-                         
+        ✅ 2. How Kustomize Works
+        - You create a kustomization.yaml file that lists your resources and optional patches.
+
+            ⭐ Base Example
+            my-app/
+             ├──base/     #share or default configs across all environment
+             ├  ├── deployment.yaml
+             ├  ├── service.yaml
+             ├  └── kustomization.yaml
+             ├──overlays/   # environment specific configurations that add or modify the base configs
+                ├──dev/
+                ├   ├── kustomization.yaml
+                ├   ├── patch-replicas.yaml
+                ├──prod/
+                    ├── kustomization.yaml
+                    ├── patch-replicas.yaml
+
+
+        ✅ Kustomize will look for kustomization.yaml file and within this file, we mention the all resources manifest file whcih we want to manage with it. It can have few common parameter (traonsformeres) as well which can be applied to each and every resources mentioned in this file. Like: namespace, namePrefix/Suffix, commonAnnotations (refer https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/ for more information)
+
+        ** to render all these common transformer, just to check how it can fit inside each manifest file, we can run:
+        # kustomize build <app_dir>
+        OR
+        # kubectl kustomize <app_dir>
+
+        (this is kind of dry run, will not deploy on cluster)
+
+        ** To deploy the config, we can run:
+        # kustomize build <app_dir> | kubectl apply -f -
+        OR
+        # kubectl apply -k <app_dir> (here -k is --kustomize='')
+
+        ** To delete the deployment:
+        # kustomize delete <app_dir> | kubectl apply -f -
+        OR
+        # kubectl delete -k <app_dir>
+        
+        ✅ Kustomize — Common Transformers (Full List + Examples)
+
+        Kustomize works by taking your base YAML and applying transformations on top of it.
+        These transformations are called Transformers.
+
+        Transformers modify the metadata, spec, labels, names, images, and more—without touching your original YAML.
+
+        Kustomize — Common Transformers
+        | Transformer                         | Purpose                                 |
+        | ----------------------------------- | --------------------------------------- |
+        | **namePrefix/nameSuffix**           | Modify resource names                   |
+        | **labels / commonLabels**           | Add global labels                       |
+        | **annotations / commonAnnotations** | Add global annotations                  |
+        | **images**                          | Override container images               |
+        | **configMapGenerator**              | Generate ConfigMaps                     |
+        | **secretGenerator**                 | Generate Secrets                        |
+        | **patchesStrategicMerge**           | Modify YAML using strategic merge patch |
+        | **patchesJson6902**                 | Modify YAML using JSON patch            |
+        | **replicas**                        | Override replicas                       |
+        | **namespace**                       | Assign namespace                        |
+        | **resources**                       | Include YAML files                      |
+        | **helmCharts**                      | Pull + render Helm charts               |
+        | **vars**                            | Cross-resource value injection          |
+        | **buildMetadata**                   | Add autogenerated metadata              |
+
+        ** I have included few of them in our demo.
+
+        ✅ Kustomize — Patches
+        Kustomize patches is ananother way to modify kubernetes configs.
+        Unlike common transfers, pacthes provide a more granular approach to target one or more specific config or objects to modify the same in kuberenetes config.
+
+        Patches Types:
+
+        | **Patch Type**             | **Format**          | **When to use **|
+        | -------------------------- | ------------------- | -------------------------------------------------------- 
+        | **patchesStrategicMerge**  | YAML                |  Best for common Kubernetes resources (Deployment, Service,
+                                                              ConfigMap). Easy field Overrides. 
+
+        | **patchesJson6902**        | JSON/YAML ops array |  When strategic merge fails, or when modifying lists, 
+                                                              removing fields, and precise edits are required.
+
+        | **patches (Generic Form)** | YAML or JSON        |  Most flexible. Recommended for new projects. Supports 
+                                                              inline patches, external files, remote patches, and 
+                                                              fine-grained targeting.
+
+        ** Inline and Patch File method
+        
+        --> Patches: 
+            - Mostly used and preferred in production
+            - inline method
+            - compatible with GitOps or Automation pipelines
+            
+            Target: To create a patch, we need below parameter:
+            | Operation   | Use                         |
+            | ----------- | --------------------------- |
+            | **add**     | Add new field or list item  |
+            | **replace** | Change an existing field    |
+            | **remove**  | Delete fields or list items |
+            | **copy**    | Copy subtree                |
+            | **move**    | Move subtree                |
+            | **test**    | Validate before patch       |
+
+            Fields you can use in target:
+            | Field                  | Purpose                                                    |
+            | ---------------------- | ---------------------------------------------------------- |
+            | **kind**               | Match resource type (Deployment, Service, ConfigMap, etc.) |
+            | **name**               | Match the resource’s metadata.name                         |
+            | **namespace**          | Match resources in a specific namespace                    |
+            | **group**              | API group (apps, rbac.authorization.k8s.io, etc.)          |
+            | **version**            | API version (v1, v1beta1, etc.)                            |
+            | **labelSelector**      | Match resources using labels                               |
+            | **annotationSelector** | Match resources using annotations                          |
+        
+        --> patchesStrategicMerge
+            We can give path to file and in file we define the patches.
+            In patch file, we need to define the exact copy of manifest file but with only those property where we need to modify.
+
+        --> patchesJson6902
+            We need to define the target and operation and path in JSON format.
+            e.g.: path: /spec/template/metadata/labels/env
+            it can accept the patch file as well.
+
+
+        ✅ Kustomize Compenents:
+            It is a powerful feature that let you reuse optional, plug-and-play configuration pieces across multiple environments — without forcing them into the base and without duplicating YAML.
+            
+            Here is a clean, simple, production-ready Kustomize structure with 3 environments:
+
+            - dev (no components)
+            - pre-prod (uses components: logging + scaling)
+            - prod (uses components: logging + scaling + hardening)            
+            | ENV          | Logging | HPA Scaling | Hardening | Purpose                 |
+            | ------------ | ------- | ----------- | --------- | ----------------------- |
+            | **dev**      | ❌       | ❌           | ❌         | Lightweight development |
+            | **pre-prod** | ✅       | ✅           | ❌         | Near-prod testing       |
+            | **prod**     | ✅       | ✅           | ✅         | Full secure deployment  |
+
 
 
 
