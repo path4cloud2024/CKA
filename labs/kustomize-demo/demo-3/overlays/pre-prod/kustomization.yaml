@@ -29,4 +29,3 @@ replicas:
 
 patchesStrategicMerge:
 - patch-container.yaml
-- service-patch.yaml

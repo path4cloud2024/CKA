@@ -2498,7 +2498,7 @@ Service listen to a port on the Node and forward requests on that port to a port
                     ├── patch-replicas.yaml
 
 
-        ✅ Kustomize will look for kustomization.yaml file and within this file, we mention the all resources manifest file whcih we want to manage with it. It can have few common parameter (traonsformeres) as well which can be applied to each and every resources mentioned in this file. Like: namespace, namePrefix/Suffix, commonAnnotations (refer https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/ for more information)
+        ✅ Kustomize will look for kustomization.yaml file and within this file, we mention the all resources manifest file whcih we want to manage with it. It can have few common parameter (transformeres) as well which can be applied to each and every resources mentioned in this file. Like: namespace, namePrefix/Suffix, commonAnnotations (refer https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/ for more information)
 
         ** to render all these common transformer, just to check how it can fit inside each manifest file, we can run:
         # kustomize build <app_dir>
@@ -2545,7 +2545,7 @@ Service listen to a port on the Node and forward requests on that port to a port
         ** I have included few of them in our demo.
 
         ✅ Kustomize — Patches
-        Kustomize patches is ananother way to modify kubernetes configs.
+        Kustomize patches is another way to modify kubernetes configs.
         Unlike common transfers, pacthes provide a more granular approach to target one or more specific config or objects to modify the same in kuberenetes config.
 
         Patches Types:
@@ -2600,7 +2600,7 @@ Service listen to a port on the Node and forward requests on that port to a port
             it can accept the patch file as well.
 
 
-        ✅ Kustomize Compenents:
+        ✅ Kustomize Components:
             It is a powerful feature that let you reuse optional, plug-and-play configuration pieces across multiple environments — without forcing them into the base and without duplicating YAML.
             
             Here is a clean, simple, production-ready Kustomize structure with 3 environments:
