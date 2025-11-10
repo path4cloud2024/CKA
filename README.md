@@ -4,6 +4,11 @@
 Welcome to the **CKA Prep Repository**.  
 This repo contains structured notes, YAML manifests, labs, and cheatsheets to help you prepare for the **Certified Kubernetes Administrator (CKA)** exam.
 
+## 📺 YouTube Playlist
+
+Explore the full video series on my YouTube channel:
+[![Watch the playlist](https://img.youtube.com/vi/jOQ8EQZ5R9o/maxresdefault.jpg)](https://www.youtube.com/playlist?list=PL4AfI7BPFsdskK0ikZoBh58gYWh8fo2Yh)
+
 ---
 
 ## 📂 Repository Structure

@@ -415,20 +415,27 @@ Service listen to a port on the Node and forward requests on that port to a port
     a) Recreate:
         where we delete the existing pods with current image and then deploy the new pods with updated image, but we have downtime with this strategy. 
     b) Rolling updates:
-        where a each pod will be replaced with a new pod with udpated image by defulat one by one, not all at a time, so no downtime will be occurred. And this is also a default strategy in kubernetes.
+        where a each pod will be replaced with a new pod with udpated image by default one by one, not all at a time, so no downtime will be occurred. And this is also a default strategy in kubernetes.
 
     Update can be anything, since we have a definition file for our deployment so when ever we have a rquirement, we can change in that file and apply it again. Then deloyment will create a new replica set and create the new pod.
     There are two ways:
         * after making changes in file, apply it.
             # kubectl apply -f file.yaml (this way we have track of a new updated file)
         * directly we can set the new parameter or property
-            # kubectl set image deployment <deployment_name> (this way, it will not update your config file)
+            (this way, it will not update your config file)
+            # kubectl set image deployment/<deployment-name> <container-name>=<image>:<tag>
+            # kubernetes.io/change-cause: kubectl set image deployment/<deployment-name> <container-name>=<image>:<tag>
 
         * to check the status of rollout:
         # kubectl rollout history deploymnet <deployment_name>
 
         * if want to rollback
         # kubectl rollout undo deployment <deployment_name>
+        # kubectl rollout undo deployment/<deployment-name> --to-revision=<revision-number>
+        (with change cause reason)
+        # kubectl annotate deployment <deployment-name> \
+            kubernetes.io/change-cause="Updated image to nginx:1.27"
+
 
 18) Additional field to container Spec Section:
         -  command and argument:
@@ -1168,7 +1175,7 @@ Service listen to a port on the Node and forward requests on that port to a port
           resources: ["nodes"]
           verbs: ["get", "list", "create", "delete"]
 
-        piVersion: rbac.authorization.k8s.io/v1
+        apiVersion: rbac.authorization.k8s.io/v1
         kind: ClusterRoleBinding
         metadata:
           name: node-admin-binding
@@ -2614,6 +2621,19 @@ Service listen to a port on the Node and forward requests on that port to a port
             | **pre-prod** | ✅       | ✅           | ❌         | Near-prod testing       |
             | **prod**     | ✅       | ✅           | ✅         | Full secure deployment  |
 
+
+39) StatefulSet in Kubernetes (code+data)
+        A StatefulSet is a Kubernetes workload object that is used when your application needs:
+        ✅ Stable network identity
+        ✅ Stable persistent storage
+        ✅ Ordered pod startup & shutdown
+        ✅ Predictable pod naming (pod-0, pod-1, …)
+
+        It is mainly used for stateful applications like:
+        - Databases (MySQL, Postgres, MongoDB)
+        - Distributed systems (Cassandra, Kafka, Zookeeper)
+        - Queues and brokers (RabbitMQ)
+        - Anything that requires data persistence per pod
 
 
 
