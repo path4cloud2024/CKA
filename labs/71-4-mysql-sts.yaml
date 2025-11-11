@@ -4,7 +4,7 @@ metadata:
   name: mysql
 spec:
   serviceName: mysql
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: mysql
@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: mysql
-        image: mysql:8.0
+        image: mysql
         ports:
         - containerPort: 3306
         env:
