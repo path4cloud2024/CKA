@@ -41,3 +41,4 @@ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.
 sudo apt-get update
 sudo apt-get install -y kubelet kubeadm kubectl
 sudo systemctl enable --now kubelet
+echo "swapoff -a" >> ~/.bashrc

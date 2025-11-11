@@ -1,0 +1,12 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mysql-local
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+
+# Assume StatefulSet will run 2 MySQL replicas → create 2 PVs.
+# On each node, create folders
+# mkdir -p /mnt/mysql/pv0
+# mkdir -p /mnt/mysql/pv1
