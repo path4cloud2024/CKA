@@ -34,4 +34,4 @@ spec:
       storageClassName: mysql-local
       resources:
         requests:
-          storage: 2Gi
+          storage: 1Gi
