@@ -20,6 +20,21 @@
  # sudo systemctl status docker
  # minikube start --driver=docker
  # minikube start --driver=docker --force
+
+ ** If the version of client and server mismatch like:
+root@minikube:~# kubectl version
+Client Version: v1.35.0
+Kustomize Version: v5.7.1
+Server Version: v1.30.0
+Warning: version difference between client (1.35) and server (1.30) exceeds the supported minor version skew of +/-1
+
+then , we can delete the minikube cluster # minikube delete and specify the kebernetes version in same command.
+# minikube start --kubernetes-version=v1.34.0 --driver=docker --force
+
+and now, if we check the version then no warning.
+
+
+
  # minikube status
  # kubectl get nodes
 
