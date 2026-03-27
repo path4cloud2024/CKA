@@ -1,44 +1,112 @@
-######################
-## MINIKUBE INSTALL ##
-######################
- # curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
- # chmod +x kubectl
- # curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
- # echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
- # sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
- # kubectl version --client
- # kubectl cluster-info
- # wget https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
- # sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
- # lsb_release -a
- # sudo apt install apt-transport-https ca-certificates curl software-properties-common
- # curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
- # echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
- # sudo apt update
- # apt-cache policy docker-ce
- # sudo apt install docker-ce
- # sudo systemctl status docker
- # minikube start --driver=docker
- # minikube start --driver=docker --force
+ ***************************************************************************************
+ ***************************************************************************************
+ ***************************************************************************************
+ ## VERIFY docker
+sudo systemctl status docker
 
- ** If the version of client and server mismatch like:
+***************************************************************************************
+*************************************************************************************** ***************************************************************************************
+
+## VERIFY MINIKUBE ##
+kubectl version --client
+kubectl cluster-info
+
+** If the version of client and server mismatch like:
 root@minikube:~# kubectl version
 Client Version: v1.35.0
 Kustomize Version: v5.7.1
 Server Version: v1.30.0
 Warning: version difference between client (1.35) and server (1.30) exceeds the supported minor version skew of +/-1
 
-then , we can delete the minikube cluster # minikube delete and specify the kebernetes version in same command.
-# minikube start --kubernetes-version=v1.34.0 --driver=docker --force
+--> Then , we can delete the minikube cluster with:
+minikube delete
+(IF IMAGES OR OTHER THINGS ARE CONSUMING MORE ON SERVER, THEN WE CAN SIMPLY PRUNE THOSE ALL:)
+docker system prune -a --volumes <OR> docker system prune -a
+
+and specify the kebernetes version in same command as below:
+minikube start --kubernetes-version=v1.34.0
 
 and now, if we check the version then no warning.
+kubectl version
+
+** If wanted to run as root user, which is not recommended, then run below:
+minikube start --driver=docker --force
+
+***************************************************************************************
+*************************************************************************************** ***************************************************************************************
+
+## Minikube status
+path4cloud@minikube2026:~$ minikube status
+minikube
+type: Control Plane
+host: Running
+kubelet: Running
+apiserver: Running
+kubeconfig: Configured
+
+## OR we can list the profile for minikube
+path4cloud@minikube2026:~$ minikube profile list
+┌──────────┬────────┬─────────┬──────────────┬─────────┬────────┬───────┬────────────────┬────────────────────┐
+│ PROFILE  │ DRIVER │ RUNTIME │      IP      │ VERSION │ STATUS │ NODES │ ACTIVE PROFILE │ ACTIVE KUBECONTEXT │
+├──────────┼────────┼─────────┼──────────────┼─────────┼────────┼───────┼────────────────┼────────────────────┤
+│ minikube │ docker │ docker  │ 192.168.49.2 │ v1.35.1 │ OK     │ 1     │ *              │ *                  │
+└──────────┴────────┴─────────┴──────────────┴─────────┴────────┴───────┴────────────────┴────────────────────┘
+path4cloud@minikube2026:~$ minikube profile
+* minikube
+
+## try to run any kubectl command (try to list all nodes)
+path4cloud@minikube2026:~$ kubectl get nodes
+NAME       STATUS   ROLES           AGE    VERSION
+minikube   Ready    control-plane   161m   v1.35.1
 
 
+***************************************************************************************
+*************************************************************************************** ***************************************************************************************
 
- # minikube status
- # kubectl get nodes
+## We have option to access the minikube from GUI since we have dashboard feature 
+--> If running the Ubuntu machine as GUI, then directly run below:
+(you might require to enable the metric server to get the usage data on dashboard, it will give you suggestion if not enabled as below, then run the same in another terminal or console, and access the URL to get the dashboard into browser)
+path4cloud@minikube2026:~/kubernetes$ minikube dashboard
+* Enabling dashboard ...
+  - Using image docker.io/kubernetesui/dashboard:v2.7.0
+  - Using image docker.io/kubernetesui/metrics-scraper:v1.0.8
+* Some dashboard features require the metrics-server addon. To enable all features please run:
+
+        minikube addons enable metrics-server
+
+* Verifying dashboard health ...
+* Launching proxy ...
+* Verifying proxy health ...
+
+* Opening http://127.0.0.1:43483/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/ in your default browser...
+  http://127.0.0.1:43483/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/
 
 
-** If running with local user then add the user into docker group:
-# sudo usermod -aG docker $USER && newgrp docker
-# minikube start --driver=docker
+--> If running the Ubuntu machine inside the VM in your local system, then we need to set the prot forwarding via proxy and then with VM IP, from our local system, dashboard can be accessed:
+path4cloud@minikube2026:~/kubernetes$ kubectl proxy --address='0.0.0.0' --disable-filter=true
+W0327 17:52:22.170015   32008 proxy.go:177] Request filter disabled, your proxy is vulnerable to XSRF attacks, please be cautious
+Starting to serve on [::]:8001
+
+(now, run the minikube dashboard on another terminal and it will give you the URL, if already ran that dashboard command then with this command, we can get the URL again # minikube dashboard --url)
+and we can access the dashboard with VM_IP:8001
+
+http://<VM_IP>:8001/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/
+
+***************************************************************************************
+*************************************************************************************** ***************************************************************************************
+
+## minikube has different feature as addons, we can list those and if required we can enable as per use case
+path4cloud@minikube2026:~$ minikube addons list
+┌─────────────────────────────┬──────────┬────────────┬────────────────────────────────────────┐
+│         ADDON NAME          │ PROFILE  │   STATUS   │               MAINTAINER               │
+├─────────────────────────────┼──────────┼────────────┼────────────────────────────────────────┤
+│ ambassador                  │ minikube │ disabled   │ 3rd party (Ambassador)                 │
+│ amd-gpu-device-plugin       │ minikube │ disabled   │ 3rd party (AMD)                        │
+│ auto-pause                  │ minikube │ disabled   │ minikube                               │
+│ cloud-spanner               │ minikube │ disabled   │ Google                                 │
+│ csi-hostpath-driver         │ minikube │ disabled   │ Kubernetes                             │
+│ dashboard                   │ minikube │ enabled ✅ │ Kubernetes                             │
+│ default-storageclass        │ minikube │ enabled ✅ │ Kubernetes   
+
+(if need to enable any, then run below)
+minikube addons enable <addon_name>
